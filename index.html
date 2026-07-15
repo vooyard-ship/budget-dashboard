@@ -1,0 +1,247 @@
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>호호양 가계부 대시보드</title>
+<style>
+  :root {
+    --bg:#F5F4F0;--surface:#FFF;--surface-2:#F0EEE9;--border:#E2DFD8;
+    --text-primary:#1C1B22;--text-secondary:#5C5B66;--text-muted:#9896A4;
+    --spend:#E05A3A;--income:#3A9E71;--income-light:#E3F5EC;
+    --save:#4B7BE5;--neutral:#9896A4;--card:#9B59B6;
+    --shadow:0 1px 3px rgba(28,27,34,.07),0 0 0 1px rgba(28,27,34,.05);
+    --radius:10px;
+  }
+  @media(prefers-color-scheme:dark){:root{
+    --bg:#18181E;--surface:#222229;--surface-2:#2A2A32;--border:#33333D;
+    --text-primary:#F0EFE9;--text-secondary:#A8A7B4;--text-muted:#6A6878;
+    --spend:#F07052;--income:#4DB882;--income-light:#162B20;
+    --save:#6A94F0;--card:#B07FD8;
+    --shadow:0 1px 3px rgba(0,0,0,.3),0 0 0 1px rgba(255,255,255,.04);
+  }}
+  *{box-sizing:border-box;margin:0;padding:0}
+  body{background:var(--bg);color:var(--text-primary);font-family:-apple-system,BlinkMacSystemFont,'Apple SD Gothic Neo','Noto Sans KR',sans-serif;font-size:14px;line-height:1.5;min-height:100vh}
+  .header{background:var(--surface);border-bottom:1px solid var(--border);padding:8px 20px;display:flex;align-items:center;justify-content:space-between;position:sticky;top:0;z-index:10;flex-wrap:wrap;gap:8px}
+  .header-left{display:flex;align-items:center;gap:8px;flex-wrap:wrap}
+  .logo{font-size:15px;font-weight:700;letter-spacing:-.3px;white-space:nowrap}.logo span{color:var(--save)}
+  .period-selector{display:flex;background:var(--surface-2);border-radius:6px;padding:2px;gap:2px;flex-wrap:wrap}
+  .period-btn{background:none;border:none;padding:4px 9px;border-radius:4px;cursor:pointer;font-size:12px;color:var(--text-muted);font-family:inherit;white-space:nowrap}
+  .period-btn.active{background:var(--surface);color:var(--text-primary);font-weight:600;box-shadow:0 1px 2px rgba(0,0,0,.08)}
+  .badge{padding:2px 8px;border-radius:99px;font-size:11px;font-weight:600;background:var(--income-light);color:var(--income);white-space:nowrap}
+  .header-right{display:flex;align-items:center;gap:6px;font-size:12px;color:var(--text-muted)}
+  .loading-wrap{display:flex;flex-direction:column;align-items:center;justify-content:center;min-height:60vh;gap:16px}
+  .spinner{width:32px;height:32px;border:3px solid var(--border);border-top-color:var(--save);border-radius:50%;animation:spin .7s linear infinite}
+  @keyframes spin{to{transform:rotate(360deg)}}
+  .main{max-width:1200px;margin:0 auto;padding:20px 20px 60px;display:none;flex-direction:column;gap:16px}
+  .section-label{font-size:11px;font-weight:700;letter-spacing:.08em;text-transform:uppercase;color:var(--text-muted);margin-bottom:8px}
+  .kpi-grid{display:grid;grid-template-columns:repeat(5,1fr);gap:10px}
+  .kpi-card{background:var(--surface);border-radius:var(--radius);padding:16px 18px;box-shadow:var(--shadow);display:flex;flex-direction:column;gap:5px}
+  .kpi-label{font-size:11px;font-weight:600;color:var(--text-muted);display:flex;align-items:center;gap:5px}
+  .kpi-dot{width:6px;height:6px;border-radius:50%;flex-shrink:0}
+  .kpi-value{font-size:20px;font-weight:700;letter-spacing:-.5px;font-variant-numeric:tabular-nums;line-height:1.1}
+  .kpi-sub{font-size:11px;color:var(--text-muted);font-variant-numeric:tabular-nums}
+  .charts-row{display:grid;grid-template-columns:1fr 320px;gap:12px;align-items:start}
+  .card{background:var(--surface);border-radius:var(--radius);padding:18px;box-shadow:var(--shadow)}
+  .card-header{display:flex;align-items:center;justify-content:space-between;margin-bottom:14px}
+  .card-title{font-size:13px;font-weight:700}
+  .card-meta{font-size:11px;color:var(--text-muted)}
+  .donut-wrap{display:flex;flex-direction:column;gap:14px}
+  .donut-canvas-wrap{position:relative;width:150px;height:150px;margin:0 auto}
+  .donut-center{position:absolute;inset:0;display:flex;flex-direction:column;align-items:center;justify-content:center;pointer-events:none}
+  .donut-center-val{font-size:17px;font-weight:700;font-variant-numeric:tabular-nums}
+  .donut-center-label{font-size:10px;color:var(--text-muted);margin-top:1px}
+  .legend-list{display:flex;flex-direction:column;gap:7px}
+  .legend-item{display:flex;align-items:center;gap:7px}
+  .legend-swatch{width:9px;height:9px;border-radius:2px;flex-shrink:0}
+  .legend-name{font-size:12px;color:var(--text-secondary);flex:1;min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+  .legend-amount{font-size:12px;font-variant-numeric:tabular-nums;font-weight:600}
+  .legend-pct{font-size:11px;color:var(--text-muted);width:28px;text-align:right}
+  .bottom-row{display:grid;grid-template-columns:1fr 300px;gap:12px;align-items:start}
+  .tx-scroll{overflow-y:auto;max-height:500px;overflow-x:auto}
+  .tx-table{width:100%;border-collapse:collapse;min-width:300px}
+  .tx-table th{font-size:11px;font-weight:700;text-transform:uppercase;color:var(--text-muted);padding:0 0 8px;text-align:left;border-bottom:1px solid var(--border);position:sticky;top:0;background:var(--surface)}
+  .tx-table th:last-child{text-align:right}
+  .tx-table td{padding:9px 0;border-bottom:1px solid var(--border);font-size:13px;vertical-align:middle}
+  .tx-table tr:last-child td{border-bottom:none}
+  .tx-name{color:var(--text-primary);font-weight:500;max-width:180px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+  .tx-cat{display:inline-flex;font-size:10px;color:var(--text-secondary);background:var(--surface-2);padding:2px 6px;border-radius:4px;white-space:nowrap}
+  .tx-date{color:var(--text-muted);font-size:12px;font-variant-numeric:tabular-nums;white-space:nowrap;padding-right:8px}
+  .tx-amount{text-align:right;font-variant-numeric:tabular-nums;font-weight:600;font-size:13px;white-space:nowrap}
+  .tx-amount.spend{color:var(--spend)}.tx-amount.income{color:var(--income)}.tx-amount.saving{color:var(--save)}
+  .month-row{display:flex;align-items:center;gap:8px;padding:6px 0;border-bottom:1px solid var(--border)}
+  .month-row:last-child{border-bottom:none}
+  .month-label{font-size:12px;font-weight:600;color:var(--text-secondary);width:22px;flex-shrink:0}
+  .month-bars{flex:1;display:flex;flex-direction:column;gap:3px}
+  .bar-track{height:5px;background:var(--surface-2);border-radius:3px;overflow:hidden}
+  .bar-fill{height:100%;border-radius:3px;transition:width .5s cubic-bezier(.4,0,.2,1)}
+  .month-amounts{text-align:right;flex-shrink:0;width:70px}
+  .month-spend-val{font-size:11px;font-variant-numeric:tabular-nums;font-weight:600;color:var(--spend)}
+  .month-income-val{font-size:10px;font-variant-numeric:tabular-nums;color:var(--text-muted)}
+  .surplus-pos{color:var(--income);font-weight:700}.surplus-neg{color:var(--spend);font-weight:700}
+  @media(max-width:900px){.kpi-grid{grid-template-columns:repeat(3,1fr)}}
+  @media(max-width:680px){
+    .kpi-grid{grid-template-columns:repeat(2,1fr)}
+    .kpi-grid .kpi-card:nth-child(5){grid-column:1 / span 2}
+    .charts-row,.bottom-row{grid-template-columns:1fr}
+    .main{padding:14px 14px 60px}
+    .kpi-value{font-size:17px}
+    .tx-name{max-width:120px}
+  }
+  @media(max-width:400px){
+    .tx-table th:nth-child(3),.tx-table td:nth-child(3){display:none}
+  }
+</style>
+</head>
+<body>
+<div class="header">
+  <div class="header-left">
+    <div class="logo">호호양 <span>가계부</span></div>
+    <div class="period-selector" id="periodBtns"></div>
+  </div>
+  <div class="header-right">
+    <span class="badge" id="syncBadge">로딩 중...</span>
+    <span id="lastUpdate"></span>
+  </div>
+</div>
+<div class="loading-wrap" id="loadingWrap">
+  <div class="spinner"></div>
+  <div style="color:var(--text-muted);font-size:13px;margin-top:4px">데이터 불러오는 중...</div>
+</div>
+<div class="main" id="mainContent">
+  <div>
+    <div class="section-label" id="kpiLabel">— 요약</div>
+    <div class="kpi-grid" id="kpiGrid"></div>
+  </div>
+  <div class="charts-row">
+    <div class="card">
+      <div class="card-header"><div class="card-title">월별 수입 · 지출 추이</div><div class="card-meta">2026년 전체</div></div>
+      <div id="months-list"></div>
+    </div>
+    <div class="card">
+      <div class="card-header"><div class="card-title">대분류별 지출</div><div class="card-meta" id="donutMeta">— 기준</div></div>
+      <div class="donut-wrap">
+        <div class="donut-canvas-wrap">
+          <canvas id="donutChart" width="150" height="150"></canvas>
+          <div class="donut-center"><div class="donut-center-val" id="donutCenterVal">0</div><div class="donut-center-label">만원 지출</div></div>
+        </div>
+        <div class="legend-list" id="legendList"></div>
+      </div>
+    </div>
+  </div>
+  <div class="bottom-row">
+    <div class="card">
+      <div class="card-header"><div class="card-title">전체 거래 내역</div><div class="card-meta" id="txMeta"></div></div>
+      <div class="tx-scroll">
+        <table class="tx-table">
+          <thead><tr><th>날짜</th><th>내용</th><th>분류</th><th style="text-align:right">금액</th></tr></thead>
+          <tbody id="txBody"></tbody>
+        </table>
+      </div>
+    </div>
+    <div class="card">
+      <div class="card-header"><div class="card-title">고정 지출</div><div class="card-meta" id="fixedMeta"></div></div>
+      <div id="fixedList"></div>
+    </div>
+  </div>
+</div>
+<script>
+const API_URL='https://script.google.com/macros/s/AKfycbxkG7xzstFIlBG2dl-JD9mm3IlZNMujUZ7lr1FxcKW2PvPwt448qQourMGK3zFQPozTlw/exec';
+const INCOME_CATS=['수입'];
+const SAVING_CATS=['저축','적금','청약','비상금','저금'];
+const CARD_METHODS=['M본인','M가족'];
+const CAT_COLORS={'고정지출':'#6A94F0','식비':'#E05A3A','외식':'#F0A050','외식·카페':'#F0A050','의료·건강':'#3A9E71','교육':'#9B59B6','교통':'#9896A4','쇼핑':'#E67E22','생활용품':'#1ABC9C','여가':'#2ECC71','기타':'#C4BEDB'};
+const PALETTE=['#6A94F0','#E05A3A','#F0A050','#3A9E71','#9896A4','#C4BEDB','#9B59B6','#E67E22','#1ABC9C','#27AE60'];
+let allData=[],selectedMonth=new Date().getMonth()+1;
+const $=id=>document.getElementById(id);
+function getM(r){const m=r['월'];return m?parseInt(String(m).replace('월','')):null}
+function isIncome(r){return INCOME_CATS.includes(r['대분류'])}
+function isSaving(r){return SAVING_CATS.includes(r['대분류'])}
+function isExpense(r){return !isIncome(r)&&!isSaving(r)}
+function fmt(n){return Math.round(Math.abs(Number(n))).toLocaleString()}
+function getCatColor(c,i){return CAT_COLORS[c]||PALETTE[i%PALETTE.length]}
+function fmtDate(val){if(!val)return '';const m=String(val).match(/\d{4}-(\d{2})-(\d{2})/);return m?`${parseInt(m[1])}.${m[2]}`:String(val)}
+function initMonthBtns(months){
+  const wrap=$('periodBtns');wrap.innerHTML='';
+  months.forEach(m=>{const btn=document.createElement('button');btn.className='period-btn'+(m===selectedMonth?' active':'');btn.textContent=m+'월';btn.onclick=()=>{selectedMonth=m;document.querySelectorAll('.period-btn').forEach(b=>b.classList.remove('active'));btn.classList.add('active');render(m)};wrap.appendChild(btn)});
+}
+function render(month){
+  const rows=allData.filter(r=>getM(r)===month);
+  renderKPI(rows,month);renderTrend(allData);renderDonut(rows,month);renderTx(rows);renderFixed(rows,month);
+}
+function renderKPI(rows,month){
+  const income=rows.filter(isIncome).reduce((s,r)=>s+Number(r['금액']),0);
+  const expense=rows.filter(isExpense).reduce((s,r)=>s+Number(r['금액']),0);
+  const saving=rows.filter(isSaving).reduce((s,r)=>s+Number(r['금액']),0);
+  const surplus=income-expense-saving;
+  const cardAmt=rows.filter(r=>CARD_METHODS.includes(r['지출방법'])&&!isIncome(r)).reduce((s,r)=>s+Number(r['금액']),0);
+  $('kpiLabel').textContent=month+'월 요약';
+  $('kpiGrid').innerHTML=`
+    <div class="kpi-card"><div class="kpi-label"><div class="kpi-dot" style="background:var(--income)"></div>수입</div><div class="kpi-value" style="color:var(--income)">${fmt(income)}</div><div class="kpi-sub">${rows.filter(isIncome).length}건</div></div>
+    <div class="kpi-card"><div class="kpi-label"><div class="kpi-dot" style="background:var(--spend)"></div>지출</div><div class="kpi-value" style="color:var(--spend)">${fmt(expense)}</div><div class="kpi-sub">${rows.filter(isExpense).length}건</div></div>
+    <div class="kpi-card"><div class="kpi-label"><div class="kpi-dot" style="background:var(--save)"></div>저축</div><div class="kpi-value" style="color:var(--save)">${fmt(saving)}</div><div class="kpi-sub">${rows.filter(isSaving).length}건</div></div>
+    <div class="kpi-card"><div class="kpi-label"><div class="kpi-dot" style="background:var(--card)"></div>카드 청구</div><div class="kpi-value" style="color:var(--card)">${fmt(cardAmt)}</div><div class="kpi-sub">M본인+M가족</div></div>
+    <div class="kpi-card"><div class="kpi-label"><div class="kpi-dot" style="background:var(--neutral)"></div>총 거래</div><div class="kpi-value">${rows.length}건</div><div class="kpi-sub">여유 <span class="${surplus>=0?'surplus-pos':'surplus-neg'}">${surplus>=0?'+':''}${fmt(surplus)}</span></div></div>
+  `;
+}
+function renderTrend(allRows){
+  const nums=[...new Set(allRows.map(getM).filter(Boolean))].sort((a,b)=>a-b);
+  const list=$('months-list');list.innerHTML='';
+  const md=nums.map(m=>{const r=allRows.filter(x=>getM(x)===m);return{label:m+'월',income:r.filter(isIncome).reduce((s,x)=>s+Number(x['금액']),0),spend:r.filter(isExpense).reduce((s,x)=>s+Number(x['금액']),0)}});
+  const mx=Math.max(...md.map(m=>Math.max(m.income,m.spend)),1);
+  md.forEach(m=>{const row=document.createElement('div');row.className='month-row';row.innerHTML=`<div class="month-label">${m.label}</div><div class="month-bars"><div class="bar-track"><div class="bar-fill" style="width:${(m.income/mx*100).toFixed(1)}%;background:var(--income);opacity:.5"></div></div><div class="bar-track"><div class="bar-fill" style="width:${(m.spend/mx*100).toFixed(1)}%;background:var(--spend)"></div></div></div><div class="month-amounts"><div class="month-spend-val">${(m.spend/10000).toFixed(0)}만</div><div class="month-income-val">${(m.income/10000).toFixed(0)}만↑</div></div>`;list.appendChild(row)});
+}
+function renderDonut(rows,month){
+  $('donutMeta').textContent=month+'월';
+  const cm={};rows.filter(isExpense).forEach(r=>{const c=r['대분류']||'기타';cm[c]=(cm[c]||0)+Number(r['금액'])});
+  const cats=Object.entries(cm).sort((a,b)=>b[1]-a[1]).map(([name,amount],i)=>({name,amount,color:getCatColor(name,i)}));
+  const total=cats.reduce((s,c)=>s+c.amount,0);
+  $('donutCenterVal').textContent=(total/10000).toFixed(0);
+  const canvas=$('donutChart');const dpr=window.devicePixelRatio||1;
+  canvas.width=150*dpr;canvas.height=150*dpr;canvas.style.width='150px';canvas.style.height='150px';
+  const ctx=canvas.getContext('2d');ctx.scale(dpr,dpr);
+  const isDark=window.matchMedia('(prefers-color-scheme:dark)').matches;
+  const bg=isDark?'#222229':'#FFF';let angle=-Math.PI/2;
+  if(!cats.length){ctx.beginPath();ctx.arc(75,75,60,0,Math.PI*2);ctx.fillStyle=isDark?'#2A2A32':'#F0EEE9';ctx.fill()}
+  else cats.forEach(c=>{const s=(c.amount/total)*Math.PI*2;ctx.beginPath();ctx.moveTo(75,75);ctx.arc(75,75,60,angle,angle+s);ctx.closePath();ctx.fillStyle=c.color;ctx.fill();ctx.strokeStyle=bg;ctx.lineWidth=2;ctx.stroke();angle+=s});
+  ctx.beginPath();ctx.arc(75,75,39,0,Math.PI*2);ctx.fillStyle=bg;ctx.fill();
+  const leg=$('legendList');leg.innerHTML='';
+  cats.slice(0,7).forEach(c=>{const pct=total?((c.amount/total)*100).toFixed(0):0;const item=document.createElement('div');item.className='legend-item';item.innerHTML=`<div class="legend-swatch" style="background:${c.color}"></div><div class="legend-name">${c.name}</div><div class="legend-amount">${fmt(c.amount)}</div><div class="legend-pct">${pct}%</div>`;leg.appendChild(item)});
+}
+function renderTx(rows){
+  const sorted=[...rows].sort((a,b)=>String(b['날짜']).localeCompare(String(a['날짜'])));
+  $('txMeta').textContent=sorted.length+'건';
+  const tbody=$('txBody');tbody.innerHTML='';
+  sorted.forEach(tx=>{const inc=isIncome(tx);const sav=isSaving(tx);const cls=inc?'income':sav?'saving':'spend';const tr=document.createElement('tr');tr.innerHTML=`<td class="tx-date">${fmtDate(tx['날짜'])}</td><td><div class="tx-name">${tx['내용']||''}</div></td><td><span class="tx-cat">${tx['대분류']||''}</span></td><td class="tx-amount ${cls}">${inc||sav?'+':''}${fmt(tx['금액'])}</td>`;tbody.appendChild(tr)});
+}
+function renderFixed(rows,month){
+  $('fixedMeta').textContent=month+'월';
+  const fixedRows=rows.filter(r=>r['대분류']==='고정지출');
+  const el=$('fixedList');el.innerHTML='';
+  if(!fixedRows.length){el.innerHTML='<div style="color:var(--text-muted);font-size:12px;padding:12px 0">항목 없음</div>';return}
+  let total=0;
+  fixedRows.forEach(f=>{total+=Number(f['금액']);const row=document.createElement('div');row.className='month-row';row.style.cssText='display:flex;align-items:center;justify-content:space-between;gap:8px';row.innerHTML=`<div style="min-width:0"><div style="font-size:13px;font-weight:500;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">${f['내용']||''}</div><div style="font-size:11px;color:var(--text-muted);margin-top:1px">${f['소분류']||''}</div></div><div style="font-size:13px;font-weight:700;font-variant-numeric:tabular-nums;color:var(--spend);flex-shrink:0">${fmt(f['금액'])}</div>`;el.appendChild(row)});
+  const sumRow=document.createElement('div');sumRow.style.cssText='display:flex;justify-content:space-between;padding:10px 0 0;border-top:2px solid var(--border);margin-top:4px';sumRow.innerHTML=`<div style="font-size:12px;font-weight:700;color:var(--text-muted)">고정 합계</div><div style="font-size:15px;font-weight:800;font-variant-numeric:tabular-nums;color:var(--spend)">${total.toLocaleString()}</div>`;el.appendChild(sumRow);
+}
+async function loadData(){
+  try{
+    const res=await fetch(API_URL);
+    if(!res.ok)throw new Error('HTTP '+res.status);
+    const data=await res.json();
+    if(data.error)throw new Error(data.error);
+    allData=data.filter(r=>r['금액']&&Number(r['금액'])!==0);
+    const months=[...new Set(allData.map(getM).filter(Boolean))].sort((a,b)=>a-b);
+    if(!months.includes(selectedMonth)&&months.length)selectedMonth=months[months.length-1];
+    initMonthBtns(months);render(selectedMonth);
+    $('loadingWrap').style.display='none';
+    $('mainContent').style.display='flex';
+    $('syncBadge').textContent='현대카드 연동';
+    $('lastUpdate').textContent=allData.length+'건';
+  }catch(e){
+    $('loadingWrap').innerHTML='<div style="color:var(--spend);font-size:14px;font-weight:700">오류: '+e.message+'</div>';
+  }
+}
+loadData();
+</script>
+</body>
+</html>

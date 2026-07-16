@@ -74,7 +74,7 @@
     z-index: 10;
   }
   .header-left { display: flex; align-items: center; gap: 12px; }
-  .logo { font-size: 15px; font-weight: 700; letter-spacing: -0.3px; color: var(--text-primary); }
+  .logo { font-size: 15px; font-weight: 700; letter-spacing: -0.3px; color: var(--text-primary); white-space: nowrap; }
   .logo span { color: var(--save); }
   .period-selector {
     display: flex;
@@ -389,8 +389,11 @@ function loadData() {
         return r['금액'] && r['대분류'] && Number(r['금액']) !== 0;
       });
       const months = [...new Set(allData.map(getMonthNum).filter(Boolean))].sort(function(a,b){return a-b;});
-      if (!months.includes(selectedMonth) && months.length > 0) {
-        selectedMonth = months[months.length - 1];
+      // 카드 거래(M본인/M가족)가 있는 월 우선 — 고정지출만 있는 미래 달로 자동선택되는 것 방지
+      const cardMonths = [...new Set(allData.filter(isCard).map(getMonthNum).filter(Boolean))].sort(function(a,b){return a-b;});
+      const preferMonths = cardMonths.length > 0 ? cardMonths : months;
+      if (!preferMonths.includes(selectedMonth) && preferMonths.length > 0) {
+        selectedMonth = preferMonths[preferMonths.length - 1];
       }
       initMonthButtons(months);
       render(selectedMonth);
@@ -490,9 +493,11 @@ function renderKPI(rows, month) {
 }
 
 function renderMonthlyTrend(allRows) {
-  const curMonth = new Date().getMonth() + 1;
+  // 카드 거래(M본인/M가족)가 있는 마지막 월까지만 — 고정지출만 예약된 미래 달 제외
+  const cardMonths = [...new Set(allRows.filter(isCard).map(getMonthNum).filter(Boolean))];
+  const maxMonth = cardMonths.length > 0 ? Math.max.apply(null, cardMonths) : (new Date().getMonth() + 1);
   const monthNums = [...new Set(allRows.map(getMonthNum).filter(Boolean))]
-    .filter(function(m){ return m <= curMonth; })
+    .filter(function(m){ return m <= maxMonth; })
     .sort(function(a,b){return b-a;});
   const list = $('months-list');
   list.innerHTML = '';

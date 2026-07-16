@@ -19,6 +19,8 @@
     --income-light: #E3F5EC;
     --save: #4B7BE5;
     --save-light: #EAF0FC;
+    --card: #D4820A;
+    --card-light: #FEF3C7;
     --neutral: #9896A4;
     --shadow: 0 1px 3px rgba(28,27,34,0.07), 0 0 0 1px rgba(28,27,34,0.05);
     --radius: 10px;
@@ -29,7 +31,7 @@
       --border: #33333D; --text-primary: #F0EFE9; --text-secondary: #A8A7B4;
       --text-muted: #6A6878; --spend: #F07052; --spend-light: #2E1E18;
       --income: #4DB882; --income-light: #162B20; --save: #6A94F0;
-      --save-light: #1A2240;
+      --save-light: #1A2240; --card: #FBBF24; --card-light: #1C1500;
       --shadow: 0 1px 3px rgba(0,0,0,0.3), 0 0 0 1px rgba(255,255,255,0.04);
     }
   }
@@ -38,7 +40,7 @@
     --border: #E2DFD8; --text-primary: #1C1B22; --text-secondary: #5C5B66;
     --text-muted: #9896A4; --spend: #E05A3A; --spend-light: #FAEAE5;
     --income: #3A9E71; --income-light: #E3F5EC; --save: #4B7BE5;
-    --save-light: #EAF0FC;
+    --save-light: #EAF0FC; --card: #D4820A; --card-light: #FEF3C7;
     --shadow: 0 1px 3px rgba(28,27,34,0.07), 0 0 0 1px rgba(28,27,34,0.05);
   }
   :root[data-theme="dark"] {
@@ -46,7 +48,7 @@
     --border: #33333D; --text-primary: #F0EFE9; --text-secondary: #A8A7B4;
     --text-muted: #6A6878; --spend: #F07052; --spend-light: #2E1E18;
     --income: #4DB882; --income-light: #162B20; --save: #6A94F0;
-    --save-light: #1A2240;
+    --save-light: #1A2240; --card: #FBBF24; --card-light: #1C1500;
     --shadow: 0 1px 3px rgba(0,0,0,0.3), 0 0 0 1px rgba(255,255,255,0.04);
   }
 
@@ -121,11 +123,14 @@
     font-size: 11px; font-weight: 700; letter-spacing: 0.08em;
     text-transform: uppercase; color: var(--text-muted); margin-bottom: 10px;
   }
-  .kpi-grid { display: grid; grid-template-columns: repeat(4,1fr); gap: 12px; }
+  .kpi-grid { display: grid; grid-template-columns: repeat(5,1fr); gap: 12px; }
   .kpi-card {
     background: var(--surface); border-radius: var(--radius);
     padding: 18px 20px; box-shadow: var(--shadow);
     display: flex; flex-direction: column; gap: 6px;
+  }
+  .kpi-card.card-bill {
+    border-top: 2px solid var(--card);
   }
   .kpi-label {
     font-size: 11px; font-weight: 600; letter-spacing: 0.04em;
@@ -137,6 +142,8 @@
     font-variant-numeric: tabular-nums; line-height: 1.1;
   }
   .kpi-sub { font-size: 11px; color: var(--text-muted); font-variant-numeric: tabular-nums; }
+  .kpi-sub-split { display: flex; gap: 6px; flex-wrap: wrap; }
+  .kpi-sub-split span { white-space: nowrap; }
 
   .charts-row { display: grid; grid-template-columns: 1fr 340px; gap: 12px; align-items: start; }
   .card { background: var(--surface); border-radius: var(--radius); padding: 20px; box-shadow: var(--shadow); }
@@ -198,6 +205,9 @@
   .surplus-pos { color: var(--income); font-weight: 700; }
   .surplus-neg { color: var(--spend); font-weight: 700; }
 
+  @media (max-width: 900px) {
+    .kpi-grid { grid-template-columns: repeat(3,1fr); }
+  }
   @media (max-width: 768px) {
     .kpi-grid { grid-template-columns: repeat(2,1fr); }
     .charts-row, .bottom-row { grid-template-columns: 1fr; }
@@ -209,6 +219,7 @@
 </head>
 <body>
 
+<!-- Header -->
 <div class="header">
   <div class="header-left">
     <div class="logo">쌍뽕이네 <span>가계부</span></div>
@@ -220,11 +231,13 @@
   </div>
 </div>
 
+<!-- Loading -->
 <div class="loading-wrap" id="loadingWrap">
   <div class="spinner"></div>
   <div style="color:var(--text-muted);font-size:13px">데이터 불러오는 중...</div>
 </div>
 
+<!-- Error -->
 <div class="error-wrap" id="errorWrap">
   <div style="font-size:32px">⚠️</div>
   <div style="color:var(--spend);font-weight:700;margin-top:4px">데이터 로드 실패</div>
@@ -232,6 +245,7 @@
   <button onclick="loadData()" style="margin-top:12px;padding:8px 16px;border:1px solid var(--border);border-radius:6px;background:var(--surface);cursor:pointer;font-size:12px;color:var(--text-primary)">다시 시도</button>
 </div>
 
+<!-- Main -->
 <div class="main" id="mainContent">
   <div>
     <div class="section-label" id="kpiLabel">— 요약</div>
@@ -273,7 +287,9 @@
       <div style="overflow-x:auto">
         <table class="tx-table">
           <thead>
-            <tr><th>날짜</th><th>내용</th><th>분류</th><th style="text-align:right">금액</th></tr>
+            <tr>
+              <th>날짜</th><th>내용</th><th>분류</th><th style="text-align:right">금액</th>
+            </tr>
           </thead>
           <tbody id="txBody"></tbody>
         </table>
@@ -292,8 +308,10 @@
 <script>
 const API_URL = 'https://script.google.com/macros/s/AKfycbxkG7xzstFIlBG2dl-JD9mm3IlZNMujUZ7lr1FxcKW2PvPwt448qQourMGK3zFQPozTlw/exec';
 
-const INCOME_CATS = ['수입'];
-const SAVING_CATS = ['저축', '적금', '청약', '비상금', '저금'];
+const INCOME_CATS  = ['수입'];
+const SAVING_CATS  = ['저축', '적금', '청약', '비상금', '저금'];
+const CARD_METHODS = ['M본인', 'M가족'];
+
 const CAT_COLORS = {
   '고정지출':'#6A94F0','식비':'#E05A3A','외식':'#F0A050','외식·카페':'#F0A050',
   '의료·건강':'#3A9E71','교육':'#9B59B6','교통':'#9896A4','쇼핑':'#E67E22',
@@ -311,10 +329,11 @@ function getMonthNum(row) {
   if (!m) return null;
   return parseInt(String(m).replace('월',''));
 }
-function isIncome(r) { return INCOME_CATS.includes(r['대분류']); }
-function isSaving(r) { return SAVING_CATS.includes(r['대분류']); }
+function isIncome(r)  { return INCOME_CATS.includes(r['대분류']); }
+function isSaving(r)  { return SAVING_CATS.includes(r['대분류']); }
 function isExpense(r) { return !isIncome(r) && !isSaving(r); }
-function fmt(n) { return Math.round(Math.abs(Number(n))).toLocaleString(); }
+function isCard(r)    { return CARD_METHODS.includes(r['지출방법']); }
+function fmt(n)       { return Math.round(Math.abs(Number(n))).toLocaleString(); }
 function getCatColor(cat, i) { return CAT_COLORS[cat] || PALETTE[i % PALETTE.length]; }
 
 function fmtDate(val) {
@@ -413,6 +432,15 @@ function renderKPI(rows, month) {
   const expense = rows.filter(isExpense).reduce(function(s,r){return s+Number(r['금액']);},0);
   const saving  = rows.filter(isSaving).reduce(function(s,r){return s+Number(r['금액']);},0);
   const surplus = income - expense - saving;
+
+  // 카드 청구 = isExpense이면서 지출방법이 M본인 or M가족인 행 합산
+  const cardRows    = rows.filter(function(r){ return isExpense(r) && isCard(r); });
+  const cardTotal   = cardRows.reduce(function(s,r){return s+Number(r['금액']);},0);
+  const cardMe      = rows.filter(function(r){ return isExpense(r) && r['지출방법']==='M본인'; })
+                          .reduce(function(s,r){return s+Number(r['금액']);},0);
+  const cardFamily  = rows.filter(function(r){ return isExpense(r) && r['지출방법']==='M가족'; })
+                          .reduce(function(s,r){return s+Number(r['금액']);},0);
+
   $('kpiLabel').textContent = month + '월 요약';
   $('kpiGrid').innerHTML = `
     <div class="kpi-card">
@@ -430,12 +458,19 @@ function renderKPI(rows, month) {
       <div class="kpi-value" style="color:var(--save)">${fmt(saving)}</div>
       <div class="kpi-sub">${rows.filter(isSaving).length}건</div>
     </div>
-    <div class="kpi-card">
-      <div class="kpi-label"><div class="kpi-dot" style="background:var(--neutral)"></div>총 거래</div>
-      <div class="kpi-value">${rows.length}건</div>
-      <div class="kpi-sub">
-        여유 <span class="${surplus>=0?'surplus-pos':'surplus-neg'}">${surplus>=0?'+':''}${fmt(surplus)}</span>
+    <div class="kpi-card card-bill">
+      <div class="kpi-label"><div class="kpi-dot" style="background:var(--card)"></div>카드 청구 예정</div>
+      <div class="kpi-value" style="color:var(--card)">${fmt(cardTotal)}</div>
+      <div class="kpi-sub kpi-sub-split">
+        ${cardMe     ? `<span>본인 ${(cardMe/10000).toFixed(1)}만</span>` : ''}
+        ${cardFamily ? `<span>가족 ${(cardFamily/10000).toFixed(1)}만</span>` : ''}
+        ${!cardTotal ? '<span>—</span>' : ''}
       </div>
+    </div>
+    <div class="kpi-card">
+      <div class="kpi-label"><div class="kpi-dot" style="background:var(--neutral)"></div>여유</div>
+      <div class="kpi-value ${surplus>=0?'surplus-pos':'surplus-neg'}">${surplus>=0?'+':'−'}${fmt(surplus)}</div>
+      <div class="kpi-sub">수입 − 지출 − 저축</div>
     </div>
   `;
 }

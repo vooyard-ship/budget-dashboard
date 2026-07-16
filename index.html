@@ -490,7 +490,10 @@ function renderKPI(rows, month) {
 }
 
 function renderMonthlyTrend(allRows) {
-  const monthNums = [...new Set(allRows.map(getMonthNum).filter(Boolean))].sort(function(a,b){return b-a;});
+  const curMonth = new Date().getMonth() + 1;
+  const monthNums = [...new Set(allRows.map(getMonthNum).filter(Boolean))]
+    .filter(function(m){ return m <= curMonth; })
+    .sort(function(a,b){return b-a;});
   const list = $('months-list');
   list.innerHTML = '';
   const monthData = monthNums.map(function(m) {

@@ -267,7 +267,7 @@
   <div class="charts-row">
     <div class="card trend-card">
       <div class="card-header">
-        <div class="card-title">월별 수입 · 지출 추이</div>
+        <div class="card-title">월 수입 · 지출</div>
         <div class="card-meta">2026년 전체</div>
       </div>
       <div id="months-list" style="flex:1; min-height:0; overflow-y:auto;"></div>
@@ -326,8 +326,9 @@ const CARD_METHODS = ['M본인', 'M가족'];
 
 const CAT_COLORS = {
   '고정지출':'#6A94F0','식비':'#E05A3A','외식':'#F0A050','외식·카페':'#F0A050',
-  '의료·건강':'#3A9E71','교육':'#9B59B6','교통':'#9896A4','쇼핑':'#E67E22',
-  '생활용품':'#1ABC9C','여가':'#2ECC71','문화':'#8E44AD','통신':'#2980B9','기타':'#C4BEDB',
+  '의료·건강':'#3A9E71','건강':'#3A9E71','교육':'#9B59B6','교통':'#9896A4','교통비':'#9896A4','쇼핑':'#E67E22',
+  '생활용품':'#1ABC9C','여가':'#2ECC71','문화':'#8E44AD','통신':'#2980B9','자동차':'#F5B841',
+  '가족':'#C4BEDB','기타':'#B0AEC0','⚠️확인필요':'#E84393','확인필요':'#E84393',
 };
 const PALETTE = ['#6A94F0','#E05A3A','#F0A050','#3A9E71','#9896A4','#C4BEDB','#9B59B6','#E67E22','#1ABC9C','#27AE60'];
 
@@ -523,8 +524,8 @@ function renderMonthlyTrend(allRows) {
         <div class="bar-track"><div class="bar-fill" style="width:${spPct}%;background:var(--spend)"></div></div>
       </div>
       <div class="month-amounts">
-        <div class="month-spend-val">${(m.spend/10000).toFixed(0)}만</div>
         <div class="month-income-val">수입 ${(m.income/10000).toFixed(0)}만</div>
+        <div class="month-spend-val">지출 ${(m.spend/10000).toFixed(0)}만</div>
       </div>
     `;
     list.appendChild(row);

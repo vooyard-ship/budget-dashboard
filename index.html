@@ -326,7 +326,7 @@
   <div class="charts-row">
     <div class="card trend-card">
       <div class="card-header">
-        <div class="card-title">월 수입 · 지출</div>
+        <div class="card-title">월별현황</div>
         <div class="card-meta">2026년 전체</div>
       </div>
       <div id="months-list" style="flex:1; min-height:0; overflow-y:auto;"></div>
@@ -511,6 +511,16 @@ function renderKPI(rows, month) {
   const saving  = rows.filter(isSaving).reduce(function(s,r){return s+Number(r['금액']);},0);
   const surplus = income - expense - saving;
 
+  // 전월 대비 지출 증감률
+  const prevRows = allData.filter(function(r){ return getMonthNum(r) === month - 1; });
+  const prevExpense = prevRows.filter(isExpense).reduce(function(s,r){return s+Number(r['금액']);},0);
+  let expDiffHtml = '';
+  if (prevExpense > 0) {
+    const pct = (expense - prevExpense) / prevExpense * 100;
+    const up = pct >= 0;
+    expDiffHtml = ` · <span style="color:${up?'var(--spend)':'var(--income)'};font-weight:600">${up?'▲':'▼'}${Math.abs(pct).toFixed(0)}% 전월대비</span>`;
+  }
+
   // 카드 청구 = isExpense이면서 지출방법이 M본인 or M가족인 행 합산
   const cardRows    = rows.filter(function(r){ return isExpense(r) && isCard(r); });
   const cardTotal   = cardRows.reduce(function(s,r){return s+Number(r['금액']);},0);
@@ -528,7 +538,7 @@ function renderKPI(rows, month) {
     <div class="kpi-card">
       <div class="kpi-label"><div class="kpi-dot" style="background:var(--spend)"></div>이번 달 지출</div>
       <div class="kpi-value" style="color:var(--spend)">${fmt(expense)}</div>
-      <div class="kpi-sub">${rows.filter(isExpense).length}건</div>
+      <div class="kpi-sub">${rows.filter(isExpense).length}건${expDiffHtml}</div>
     </div>
     <div class="kpi-card">
       <div class="kpi-label"><div class="kpi-dot" style="background:var(--save)"></div>저축</div>
@@ -600,7 +610,7 @@ function renderMonthlyTrend(allRows) {
       </div>
       <div class="month-amounts">
         <div class="month-income-val">수입 ${(m.income/10000).toFixed(0)}만</div>
-        <div class="month-spend-val">지출 ${(m.spend/10000).toFixed(0)}만</div>
+        <div class="month-spend-val">${(m.spend/10000).toFixed(0)}만</div>
       </div>
     `;
     list.appendChild(row);

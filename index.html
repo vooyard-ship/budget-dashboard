@@ -217,7 +217,8 @@
     .bottom-row .fixed-card { order: -1; }
     .header { padding: 0 16px; height: auto; min-height: 56px; flex-wrap: wrap; gap: 8px; padding: 8px 16px; }
     .main { padding: 16px 16px 48px; }
-    .period-selector { overflow-x: auto; }
+    .period-selector { width: 100%; display: grid; grid-template-columns: repeat(6, 1fr); gap: 2px; overflow: visible; }
+    .period-btn { text-align: center; padding: 5px 4px; }
   }
 
   /* 심플·투명 스크롤바 (모바일 스타일) */

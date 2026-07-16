@@ -570,7 +570,8 @@ function renderDonut(rows, month) {
 }
 
 function renderTransactions(rows) {
-  const sorted = [...rows].sort(function(a,b){return new Date(b['날짜'])-new Date(a['날짜']);}).slice(0,20);
+  const sorted = [...rows].sort(function(a,b){return new Date(b['날짜'])-new Date(a['날짜']);});
+  const meta = $('txMeta'); if (meta) meta.textContent = '전체 ' + sorted.length + '건';
   const tbody = $('txBody');
   tbody.innerHTML = '';
   sorted.forEach(function(tx) {

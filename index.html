@@ -211,6 +211,7 @@
   }
   @media (max-width: 768px) {
     .kpi-grid { grid-template-columns: repeat(2,1fr); }
+    .kpi-grid > .kpi-card:last-child { grid-column: 1 / -1; max-width: calc(50% - 6px); margin: 0 auto; width: 100%; }
     .charts-row, .bottom-row { grid-template-columns: 1fr; }
     .header { padding: 0 16px; height: auto; min-height: 56px; flex-wrap: wrap; gap: 8px; padding: 8px 16px; }
     .main { padding: 16px 16px 48px; }

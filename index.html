@@ -179,12 +179,12 @@
   .tx-table th:last-child { text-align: right; }
   .tx-table td { padding: 11px 0; border-bottom: 1px solid var(--border); font-size: 13px; vertical-align: middle; }
   .tx-table tr:last-child td { border-bottom: none; }
-  .tx-name { color: var(--text-primary); font-weight: 500; }
+  .tx-name { color: var(--text-primary); font-weight: 500; word-break: break-word; overflow-wrap: break-word; }
   .tx-cat {
     display: inline-flex; align-items: center; gap: 4px; font-size: 11px;
     color: var(--text-secondary); background: var(--surface-2); padding: 2px 7px; border-radius: 4px;
   }
-  .tx-date { color: var(--text-muted); font-size: 12px; font-variant-numeric: tabular-nums; }
+  .tx-date { color: var(--text-muted); font-size: 12px; font-variant-numeric: tabular-nums; padding-right: 10px; white-space: nowrap; }
   .tx-amount { text-align: right; font-variant-numeric: tabular-nums; font-weight: 600; font-size: 13px; }
   .tx-amount.spend { color: var(--spend); }
   .tx-amount.income { color: var(--income); }
@@ -284,7 +284,7 @@
         <div class="card-title">최근 거래</div>
         <div class="card-meta" id="txMeta">최근 20건</div>
       </div>
-      <div style="overflow-x:auto">
+      <div style="overflow-x:auto; overflow-y:auto; max-height:400px;">
         <table class="tx-table">
           <thead>
             <tr>
@@ -468,9 +468,9 @@ function renderKPI(rows, month) {
       </div>
     </div>
     <div class="kpi-card">
-      <div class="kpi-label"><div class="kpi-dot" style="background:var(--neutral)"></div>여유</div>
-      <div class="kpi-value ${surplus>=0?'surplus-pos':'surplus-neg'}">${surplus>=0?'+':'−'}${fmt(surplus)}</div>
-      <div class="kpi-sub">수입 − 지출 − 저축</div>
+      <div class="kpi-label"><div class="kpi-dot" style="background:var(--neutral)"></div>저축률</div>
+      <div class="kpi-value">${income > 0 ? (saving/income*100).toFixed(1) : 0}<span style="font-size:15px;font-weight:600;letter-spacing:0">%</span></div>
+      <div class="kpi-sub">여유 <span class="${surplus>=0?'surplus-pos':'surplus-neg'}">${surplus>=0?'+':'−'}${fmt(surplus)}</span></div>
     </div>
   `;
 }

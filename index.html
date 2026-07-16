@@ -201,7 +201,7 @@
   .month-spend-val { font-size: 12px; font-variant-numeric: tabular-nums; font-weight: 600; color: var(--spend); }
   .month-income-val { font-size: 11px; font-variant-numeric: tabular-nums; color: var(--text-muted); }
 
-  .bottom-row { display: grid; grid-template-columns: 1fr 320px; gap: 12px; align-items: start; }
+  .bottom-row { display: grid; grid-template-columns: 1fr 340px; gap: 12px; align-items: start; }
 
   .surplus-pos { color: var(--income); font-weight: 700; }
   .surplus-neg { color: var(--spend); font-weight: 700; }
@@ -477,7 +477,7 @@ function renderKPI(rows, month) {
 }
 
 function renderMonthlyTrend(allRows) {
-  const monthNums = [...new Set(allRows.map(getMonthNum).filter(Boolean))].sort(function(a,b){return a-b;});
+  const monthNums = [...new Set(allRows.map(getMonthNum).filter(Boolean))].sort(function(a,b){return b-a;});
   const list = $('months-list');
   list.innerHTML = '';
   const monthData = monthNums.map(function(m) {

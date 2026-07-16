@@ -249,7 +249,6 @@
 <!-- Main -->
 <div class="main" id="mainContent">
   <div>
-    <div class="section-label" id="kpiLabel">— 요약</div>
     <div class="kpi-grid" id="kpiGrid"></div>
   </div>
 
@@ -405,18 +404,21 @@ function loadData() {
 function initMonthButtons(months) {
   const wrap = $('periodBtns');
   wrap.innerHTML = '';
-  months.forEach(function(m) {
+  for (var m = 1; m <= 12; m++) {
     const btn = document.createElement('button');
+    const hasData = months.includes(m);
     btn.className = 'period-btn' + (m === selectedMonth ? ' active' : '');
+    if (!hasData) btn.style.opacity = '0.4';
     btn.textContent = m + '월';
+    const _m = m;
     btn.onclick = function() {
-      selectedMonth = m;
+      selectedMonth = _m;
       document.querySelectorAll('.period-btn').forEach(function(b){ b.classList.remove('active'); });
       btn.classList.add('active');
-      render(m);
+      render(_m);
     };
     wrap.appendChild(btn);
-  });
+  }
 }
 
 function render(month) {
@@ -442,7 +444,6 @@ function renderKPI(rows, month) {
   const cardFamily  = rows.filter(function(r){ return isExpense(r) && r['지출방법']==='M가족'; })
                           .reduce(function(s,r){return s+Number(r['금액']);},0);
 
-  $('kpiLabel').textContent = month + '월 요약';
   $('kpiGrid').innerHTML = `
     <div class="kpi-card">
       <div class="kpi-label"><div class="kpi-dot" style="background:var(--income)"></div>이번 달 수입</div>

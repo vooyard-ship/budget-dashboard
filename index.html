@@ -184,7 +184,8 @@
     display: inline-flex; align-items: center; gap: 4px; font-size: 11px;
     color: var(--text-secondary); background: var(--surface-2); padding: 2px 7px; border-radius: 4px;
   }
-  .tx-date { color: var(--text-muted); font-size: 12px; font-variant-numeric: tabular-nums; padding-right: 10px; white-space: nowrap; }
+  .tx-date { color: var(--text-muted); font-size: 12px; font-variant-numeric: tabular-nums; white-space: nowrap; }
+  .tx-table td:first-child { padding-right: 12px; }
   .tx-amount { text-align: right; font-variant-numeric: tabular-nums; font-weight: 600; font-size: 13px; }
   .tx-amount.spend { color: var(--spend); }
   .tx-amount.income { color: var(--income); }
@@ -258,7 +259,7 @@
         <div class="card-title">월별 수입 · 지출 추이</div>
         <div class="card-meta">2026년 전체</div>
       </div>
-      <div id="months-list"></div>
+      <div id="months-list" style="max-height:126px; overflow-y:auto;"></div>
     </div>
     <div class="card">
       <div class="card-header">

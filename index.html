@@ -708,9 +708,8 @@ function renderFixed(rows, month) {
   }
   let total = 0;
 
-  // 현대카드 결제 — 별도 강조 박스
+  // 현대카드 결제 — 별도 강조 박스 (월 합계에는 미포함, 카드값 단독 표시)
   if (cardTotal > 0) {
-    total += cardTotal;
     const cardBox = document.createElement('div');
     cardBox.style.cssText = 'display:flex;align-items:center;justify-content:space-between;gap:12px;padding:12px 14px;background:var(--card-light);border:1px solid var(--card);border-radius:8px;margin-bottom:12px';
     cardBox.innerHTML = `
@@ -739,7 +738,7 @@ function renderFixed(rows, month) {
   const sumRow = document.createElement('div');
   sumRow.style.cssText = 'display:flex;justify-content:space-between;padding:12px 0 0;border-top:2px solid var(--border);margin-top:4px';
   sumRow.innerHTML = `
-    <div style="font-size:12px;font-weight:700;color:var(--text-muted)">월 합계 (카드 포함)</div>
+    <div style="font-size:12px;font-weight:700;color:var(--text-muted)">현금 고정 합계</div>
     <div style="font-size:16px;font-weight:800;font-variant-numeric:tabular-nums;color:var(--spend)">${total.toLocaleString()}</div>
   `;
   el.appendChild(sumRow);

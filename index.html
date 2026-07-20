@@ -378,6 +378,34 @@
 
 <script>
 const API_URL = 'https://script.google.com/macros/s/AKfycbxkG7xzstFIlBG2dl-JD9mm3IlZNMujUZ7lr1FxcKW2PvPwt448qQourMGK3zFQPozTlw/exec';
+// v2: 데이터를 GitHub CSV에서 직접 읽음 (스프레드시트 웹앱 대신)
+const DATA_URL = './data/transactions.csv';
+
+function parseCSVLine(line) {
+  const res = []; let cur = ''; let inQ = false;
+  for (let i = 0; i < line.length; i++) {
+    const ch = line[i];
+    if (ch === '"') { if (inQ && line[i+1] === '"') { cur += '"'; i++; } else inQ = !inQ; }
+    else if (ch === ',' && !inQ) { res.push(cur); cur = ''; }
+    else cur += ch;
+  }
+  res.push(cur);
+  return res;
+}
+function parseCSV(text) {
+  const lines = text.replace(/\r/g, '').split('\n').filter(function(l){ return l.trim(); });
+  if (!lines.length) return [];
+  const headers = parseCSVLine(lines[0]);
+  const rows = [];
+  for (let i = 1; i < lines.length; i++) {
+    const vals = parseCSVLine(lines[i]);
+    const obj = {};
+    headers.forEach(function(h, j){ obj[h] = vals[j] !== undefined ? vals[j] : ''; });
+    obj['금액'] = Number(String(obj['금액']).replace(/,/g, '')) || 0;
+    rows.push(obj);
+  }
+  return rows;
+}
 
 const INCOME_CATS  = ['수입'];
 const SAVING_CATS  = ['저축', '적금', '청약', '비상금', '저금'];
@@ -428,23 +456,13 @@ function loadData() {
   $('errorWrap').style.display = 'none';
   $('mainContent').style.display = 'none';
 
-  const callbackName = '__budgetCb__' + Date.now();
-  const script = document.createElement('script');
-
-  const timer = setTimeout(function() {
-    cleanup();
-    showError('요청 시간 초과 (30초)');
-  }, 30000);
-
-  function cleanup() {
-    clearTimeout(timer);
-    delete window[callbackName];
-    if (script.parentNode) script.parentNode.removeChild(script);
-  }
-
-  window[callbackName] = function(data) {
-    cleanup();
-    try {
+  fetch(DATA_URL + '?t=' + Date.now())
+    .then(function(res) {
+      if (!res.ok) throw new Error('데이터 로드 실패 (' + res.status + ')');
+      return res.text();
+    })
+    .then(function(text) {
+      const data = parseCSV(text);
       allData = data.filter(function(r) {
         return r['금액'] && r['대분류'] && Number(r['금액']) !== 0;
       });
@@ -459,21 +477,13 @@ function loadData() {
       render(selectedMonth);
       $('loadingWrap').style.display = 'none';
       $('mainContent').style.display = 'flex';
-      $('syncBadge').textContent = '현대카드 연동';
+      $('syncBadge').textContent = 'CSV 연동';
       $('syncBadge').className = 'badge-sync ok';
       $('lastUpdate').textContent = allData.length + '건';
-    } catch(e) {
+    })
+    .catch(function(e) {
       showError(e.message);
-    }
-  };
-
-  script.onerror = function() {
-    cleanup();
-    showError('스크립트 로드 실패 — Apps Script 배포 확인 필요');
-  };
-
-  script.src = API_URL + '?action=getData&callback=' + callbackName;
-  document.head.appendChild(script);
+    });
 }
 
 function initMonthButtons(months) {

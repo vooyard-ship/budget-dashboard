@@ -245,6 +245,32 @@
   .surplus-pos { color: var(--income); font-weight: 700; }
   .surplus-neg { color: var(--spend); font-weight: 700; }
 
+  /* 자산 현황 (스냅샷) */
+  .asset-section { display: flex; flex-direction: column; gap: 10px; }
+  .asset-head { display: flex; align-items: center; justify-content: space-between; }
+  .asset-card { display: flex; flex-direction: column; gap: 16px; }
+  .asset-top { display: flex; align-items: center; gap: 20px; flex-wrap: wrap; }
+  .asset-net { flex: 1; min-width: 140px; }
+  .asset-net-label { font-size: 12px; color: var(--text-muted); font-weight: 600; }
+  .asset-net-val { font-size: 32px; font-weight: 800; letter-spacing: -1px; color: var(--save); font-variant-numeric: tabular-nums; }
+  .asset-tiles { display: flex; gap: 10px; }
+  .asset-tile { background: var(--surface-2); border-radius: 8px; padding: 10px 16px; min-width: 100px; }
+  .asset-tile-label { font-size: 11px; color: var(--text-muted); font-weight: 600; }
+  .asset-tile-val { font-size: 18px; font-weight: 700; font-variant-numeric: tabular-nums; margin-top: 2px; }
+  .asset-bar { display: flex; height: 10px; border-radius: 5px; overflow: hidden; background: var(--surface-2); }
+  .asset-bar > div { height: 100%; }
+  .asset-lists { display: grid; grid-template-columns: 1fr 1fr; gap: 24px; }
+  .asset-col-title { font-size: 11px; font-weight: 700; letter-spacing: .04em; color: var(--text-muted); text-transform: uppercase; margin-bottom: 8px; }
+  .asset-row { display: flex; align-items: center; justify-content: space-between; gap: 12px; padding: 9px 0; border-bottom: 1px solid var(--border); }
+  .asset-row:last-child { border-bottom: none; }
+  .asset-row-name { font-size: 13px; font-weight: 500; color: var(--text-primary); }
+  .asset-row-sub { font-size: 11px; color: var(--text-muted); margin-top: 1px; }
+  .asset-row-val { font-size: 14px; font-weight: 700; font-variant-numeric: tabular-nums; flex-shrink: 0; }
+  @media (max-width: 768px) {
+    .asset-lists { grid-template-columns: 1fr; gap: 16px; }
+    .asset-net-val { font-size: 28px; }
+  }
+
   @media (max-width: 900px) {
     .kpi-grid { grid-template-columns: repeat(3,1fr); }
   }
@@ -374,6 +400,43 @@
       <div id="fixedList"></div>
     </div>
   </div>
+
+  <!-- 자산 현황 (스냅샷) — 월별 흐름과 분리된 잔액(스톡) -->
+  <div class="asset-section" id="assetSection" style="display:none">
+    <div class="asset-head">
+      <div class="section-label" style="margin:0">자산 현황 · 스냅샷</div>
+      <div class="card-meta" id="assetDate">—</div>
+    </div>
+    <div class="card asset-card">
+      <div class="asset-top">
+        <div class="asset-net">
+          <div class="asset-net-label">순자산</div>
+          <div class="asset-net-val" id="assetNet">0</div>
+        </div>
+        <div class="asset-tiles">
+          <div class="asset-tile">
+            <div class="asset-tile-label">총자산</div>
+            <div class="asset-tile-val" id="assetTotal" style="color:var(--income)">0</div>
+          </div>
+          <div class="asset-tile">
+            <div class="asset-tile-label">총부채</div>
+            <div class="asset-tile-val" id="debtTotal" style="color:var(--spend)">0</div>
+          </div>
+        </div>
+      </div>
+      <div class="asset-bar" id="assetBar"></div>
+      <div class="asset-lists">
+        <div>
+          <div class="asset-col-title">자산</div>
+          <div id="assetList"></div>
+        </div>
+        <div>
+          <div class="asset-col-title">부채</div>
+          <div id="debtList"></div>
+        </div>
+      </div>
+    </div>
+  </div>
 </div>
 
 <script>
@@ -382,6 +445,8 @@ const API_URL = 'https://script.google.com/macros/s/AKfycbxkG7xzstFIlBG2dl-JD9mm
 // card.csv = 카드·고정지출(스프레드시트 내보내기) / manual.csv = 수입·환불(Claude 관리)
 const CARD_URL = './data/card.csv';
 const MANUAL_URL = './data/manual.csv';
+// assets.csv = 자산·부채 스냅샷(잔액=스톡, Claude 관리). 월별 흐름과 분리
+const ASSETS_URL = './data/assets.csv';
 
 function parseCSVLine(line) {
   const res = []; let cur = ''; let inQ = false;
@@ -461,13 +526,18 @@ function loadData() {
   const bust = '?t=' + Date.now();
   Promise.all([
     fetch(CARD_URL + bust).then(function(r){ if(!r.ok) throw new Error('card ' + r.status); return r.text(); }),
-    fetch(MANUAL_URL + bust).then(function(r){ return r.ok ? r.text() : ''; })  // 수동분 없어도 진행
+    fetch(MANUAL_URL + bust).then(function(r){ return r.ok ? r.text() : ''; }),  // 수동분 없어도 진행
+    fetch(ASSETS_URL + bust).then(function(r){ return r.ok ? r.text() : ''; })   // 자산 없어도 진행
   ])
     .then(function(texts) {
       const data = parseCSV(texts[0]).concat(texts[1] ? parseCSV(texts[1]) : []);
       allData = data.filter(function(r) {
         return r['금액'] && r['대분류'] && Number(r['금액']) !== 0;
       });
+      const assetRows = texts[2]
+        ? parseCSV(texts[2]).filter(function(r){ return r['구분'] && Number(r['금액']); })
+        : [];
+      renderAssets(assetRows);
       const months = [...new Set(allData.map(getMonthNum).filter(Boolean))].sort(function(a,b){return a-b;});
       // 카드 거래(M본인/M가족)가 있는 월 우선 — 고정지출만 있는 미래 달로 자동선택되는 것 방지
       const cardMonths = [...new Set(allData.filter(isCard).map(getMonthNum).filter(Boolean))].sort(function(a,b){return a-b;});
@@ -754,6 +824,55 @@ function renderFixed(rows, month) {
     <div style="font-size:16px;font-weight:800;font-variant-numeric:tabular-nums;color:var(--spend)">${total.toLocaleString()}</div>
   `;
   el.appendChild(sumRow);
+}
+
+function fmtEok(n) {
+  n = Math.round(Number(n));
+  const abs = Math.abs(n);
+  const sign = n < 0 ? '−' : '';
+  if (abs >= 100000000) return sign + (abs/100000000).toFixed(2) + '억';
+  if (abs >= 10000)     return sign + Math.round(abs/10000).toLocaleString() + '만';
+  return sign + abs.toLocaleString();
+}
+
+function renderAssetList(id, items, color) {
+  const el = $(id);
+  el.innerHTML = '';
+  items.slice().sort(function(a,b){ return Number(b['금액']) - Number(a['금액']); }).forEach(function(it) {
+    const sub = [it['분류'], it['비고']].filter(Boolean).join(' · ');
+    const row = document.createElement('div');
+    row.className = 'asset-row';
+    row.innerHTML =
+      '<div><div class="asset-row-name">' + (it['항목']||'') + '</div>' +
+      '<div class="asset-row-sub">' + sub + '</div></div>' +
+      '<div class="asset-row-val" style="color:' + color + '">' + fmtEok(it['금액']) + '</div>';
+    el.appendChild(row);
+  });
+}
+
+function renderAssets(rows) {
+  const sec = $('assetSection');
+  if (!rows || !rows.length) { sec.style.display = 'none'; return; }
+  sec.style.display = 'flex';
+  const assets = rows.filter(function(r){ return r['구분'] === '자산'; });
+  const debts  = rows.filter(function(r){ return r['구분'] === '부채'; });
+  const totalAsset = assets.reduce(function(s,r){ return s + Number(r['금액']); }, 0);
+  const totalDebt  = debts.reduce(function(s,r){ return s + Number(r['금액']); }, 0);
+  const net = totalAsset - totalDebt;
+
+  $('assetDate').textContent  = (rows[0]['날짜'] || '') + ' 기준';
+  $('assetNet').textContent   = fmtEok(net);
+  $('assetTotal').textContent = fmtEok(totalAsset);
+  $('debtTotal').textContent  = fmtEok(totalDebt);
+
+  const netPct  = totalAsset > 0 ? Math.max(net,0)/totalAsset*100 : 0;
+  const debtPct = totalAsset > 0 ? totalDebt/totalAsset*100 : 0;
+  $('assetBar').innerHTML =
+    '<div style="width:' + netPct + '%;background:var(--save)"></div>' +
+    '<div style="width:' + debtPct + '%;background:var(--spend);opacity:.6"></div>';
+
+  renderAssetList('assetList', assets, 'var(--income)');
+  renderAssetList('debtList', debts, 'var(--spend)');
 }
 
 const obs = new MutationObserver(function() {

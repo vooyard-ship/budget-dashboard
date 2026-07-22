@@ -67,7 +67,7 @@
     padding: 0 28px;
     display: flex;
     align-items: center;
-    justify-content: space-between;
+    gap: 12px;
     height: 56px;
     position: sticky;
     top: 0;
@@ -294,10 +294,12 @@
     .kpi-grid > .kpi-card:last-child { grid-column: 1 / -1; }
     .charts-row, .bottom-row { grid-template-columns: 1fr; }
     .bottom-row .fixed-card { order: -1; }
-    .header { padding: 0 16px; height: auto; min-height: 56px; flex-wrap: wrap; gap: 8px; padding: 8px 16px; }
+    .header { height: auto; min-height: 56px; flex-wrap: wrap; gap: 8px; padding: 10px 16px; }
     .main { padding: 16px 16px 48px; }
-    .period-selector { width: 100%; display: grid; grid-template-columns: repeat(6, 1fr); gap: 2px; overflow: visible; margin-left: 0; }
-    .period-btn { text-align: center; padding: 5px 4px; }
+    .logo { order: 1; }
+    .header-right { order: 2; margin-left: auto; }
+    .period-selector { order: 3; width: 100%; display: grid; grid-template-columns: repeat(6, 1fr); gap: 3px; overflow: visible; margin-left: 0; padding: 3px; }
+    .period-btn { text-align: center; padding: 6px 4px; }
   }
 
   /* 심플·투명 스크롤바 (모바일 스타일) */
@@ -313,10 +315,8 @@
 
 <!-- Header -->
 <div class="header">
-  <div class="header-left">
-    <div class="logo">쌍뽕이네 <span>가계부</span></div>
-    <div class="period-selector" id="periodBtns"></div>
-  </div>
+  <div class="logo">쌍뽕이네 <span>가계부</span></div>
+  <div class="period-selector" id="periodBtns"></div>
   <div class="header-right">
     <span class="badge-sync" id="syncBadge">로딩 중...</span>
     <span id="lastUpdate"></span>

@@ -146,6 +146,8 @@
   .hero-sub { background: rgba(255,255,255,0.15); border-radius: 8px; padding: 10px 12px; }
   .hero-sub span { font-size: 12px; opacity: 0.85; display: block; margin-bottom: 2px; }
   .hero-sub b { font-size: 17px; font-weight: 700; font-variant-numeric: tabular-nums; }
+  .hero-sub-detail { display: block; font-style: normal; font-size: 11px; opacity: 0.85; margin-top: 3px; font-variant-numeric: tabular-nums; }
+  .hero-sub-detail .diff { font-weight: 700; opacity: 1; }
   .hero-budget { display: flex; align-items: center; gap: 16px; }
   .budget-ring {
     width: 76px; height: 76px; border-radius: 50%; flex-shrink: 0;
@@ -332,8 +334,8 @@
         <div class="hero-label">이번 달 저축 여력</div>
         <div class="hero-value" id="heroSurplus">0</div>
         <div class="hero-split">
-          <div class="hero-sub"><span>수입</span><b id="heroIncome">0</b></div>
-          <div class="hero-sub"><span>지출</span><b id="heroExpense">0</b></div>
+          <div class="hero-sub"><span>수입</span><b id="heroIncome">0</b><i class="hero-sub-detail" id="heroIncomeSub">0건</i></div>
+          <div class="hero-sub"><span>지출</span><b id="heroExpense">0</b><i class="hero-sub-detail" id="heroExpenseSub">0건</i></div>
         </div>
       </div>
       <div class="hero-budget card">
@@ -597,10 +599,12 @@ function renderKPI(rows, month) {
   const prevRows = allData.filter(function(r){ return getMonthNum(r) === month - 1; });
   const prevExpense = prevRows.filter(isExpense).reduce(function(s,r){return s+Number(r['금액']);},0);
   let expDiffHtml = '';
+  let heroExpDiff = '';
   if (prevExpense > 0) {
     const pct = (expense - prevExpense) / prevExpense * 100;
     const up = pct >= 0;
     expDiffHtml = ` · <span style="color:${up?'var(--spend)':'var(--income)'};font-weight:600">${up?'▲':'▼'}${Math.abs(pct).toFixed(0)}% 전월대비</span>`;
+    heroExpDiff = ` · <span class="diff">${up?'▲':'▼'}${Math.abs(pct).toFixed(0)}% 전월대비</span>`;
   }
 
   // 카드 청구 = isExpense이면서 지출방법이 M본인 or M가족인 행 합산
@@ -652,6 +656,8 @@ function renderKPI(rows, month) {
   $('heroSurplus').textContent = fmt(heroSurplus);
   $('heroIncome').textContent  = fmt(income);
   $('heroExpense').textContent = fmt(expense);
+  $('heroIncomeSub').textContent  = rows.filter(isIncome).length + '건';
+  $('heroExpenseSub').innerHTML   = rows.filter(isExpense).length + '건' + heroExpDiff;
   $('budgetPct').textContent   = Math.round(rate) + '%';
   $('budgetCount').textContent = rows.length + '건 중 ⚠️ ' + reviewCount + '건 확인 필요';
   $('budgetFixed').textContent = '고정지출 ' + (fixedTotal/10000).toFixed(1) + '만 포함';

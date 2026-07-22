@@ -73,7 +73,7 @@
     top: 0;
     z-index: 10;
   }
-  .header-left { display: flex; align-items: center; gap: 12px; }
+  .header-left { display: flex; align-items: center; gap: 12px; flex: 1; min-width: 0; }
   .logo { font-size: 15px; font-weight: 700; letter-spacing: -0.3px; color: var(--text-primary); white-space: nowrap; }
   .logo span { color: var(--save); }
   .period-selector {
@@ -83,6 +83,7 @@
     padding: 2px;
     gap: 2px;
     flex-wrap: wrap;
+    margin-left: auto;
   }
   .period-btn {
     background: none; border: none; padding: 4px 10px; border-radius: 4px;
@@ -295,7 +296,7 @@
     .bottom-row .fixed-card { order: -1; }
     .header { padding: 0 16px; height: auto; min-height: 56px; flex-wrap: wrap; gap: 8px; padding: 8px 16px; }
     .main { padding: 16px 16px 48px; }
-    .period-selector { width: 100%; display: grid; grid-template-columns: repeat(6, 1fr); gap: 2px; overflow: visible; }
+    .period-selector { width: 100%; display: grid; grid-template-columns: repeat(6, 1fr); gap: 2px; overflow: visible; margin-left: 0; }
     .period-btn { text-align: center; padding: 5px 4px; }
   }
 
@@ -817,20 +818,18 @@ function renderFixed(rows, month) {
   // 현대카드 결제 — 별도 강조 박스 (월 합계에는 미포함, 카드값 단독 표시)
   if (cardTotal > 0) {
     const cardBox = document.createElement('div');
-    cardBox.style.cssText = 'display:flex;align-items:center;justify-content:space-between;gap:12px;padding:12px 14px;background:var(--card-light);border:1px solid var(--card);border-radius:8px;margin-bottom:12px';
+    cardBox.style.cssText = 'padding:12px 14px;background:var(--card-light);border:1px solid var(--card);border-radius:8px;margin-bottom:12px';
     cardBox.innerHTML = `
-      <div>
-        <div style="display:flex;align-items:baseline;gap:8px">
-          <div style="font-size:13px;font-weight:700;color:var(--card)">💳 현대카드 결제</div>
-          <div style="font-size:11px;color:var(--text-muted)">매월 17일 (변동)</div>
-        </div>
-        <div style="font-size:11px;color:var(--text-secondary);margin-top:4px;font-variant-numeric:tabular-nums">
-          ${cardMe     ? `본인 ${(cardMe/10000).toFixed(1)}만` : ''}
-          ${cardMe && cardFamily ? ' · ' : ''}
-          ${cardFamily ? `가족 ${(cardFamily/10000).toFixed(1)}만` : ''}
-        </div>
+      <div style="display:flex;align-items:baseline;gap:8px">
+        <div style="font-size:13px;font-weight:700;color:var(--card)">💳 현대카드 결제</div>
+        <div style="font-size:11px;color:var(--text-muted)">매월 17일 (변동)</div>
       </div>
-      <div style="font-size:16px;font-weight:800;font-variant-numeric:tabular-nums;color:var(--card);flex-shrink:0">${fmt(cardTotal)}</div>
+      <div style="font-size:22px;font-weight:800;font-variant-numeric:tabular-nums;color:var(--card);margin-top:5px">${fmt(cardTotal)}</div>
+      <div style="font-size:11px;color:var(--text-secondary);margin-top:3px;font-variant-numeric:tabular-nums">
+        ${cardMe     ? `본인 ${(cardMe/10000).toFixed(1)}만` : ''}
+        ${cardMe && cardFamily ? ' · ' : ''}
+        ${cardFamily ? `가족 ${(cardFamily/10000).toFixed(1)}만` : ''}
+      </div>
     `;
     el.appendChild(cardBox);
   }

@@ -220,6 +220,7 @@
   .legend-item { display: flex; align-items: center; gap: 8px; }
   .legend-swatch { width: 10px; height: 10px; border-radius: 2px; flex-shrink: 0; }
   .legend-name { font-size: 12px; color: var(--text-secondary); flex: 1; }
+  .legend-count { font-size: 11px; color: var(--text-muted); font-variant-numeric: tabular-nums; width: 34px; text-align: right; }
   .legend-amount { font-size: 12px; font-variant-numeric: tabular-nums; font-weight: 600; color: var(--text-primary); }
   .legend-pct { font-size: 11px; color: var(--text-muted); width: 30px; text-align: right; }
 
@@ -724,12 +725,14 @@ function renderDonut(rows, month) {
   $('donutMeta').textContent = month + '월 기준';
   const expenses = rows.filter(isExpense);
   const catMap = {};
+  const cntMap = {};
   expenses.forEach(function(r) {
     const cat = r['대분류'] || '기타';
     catMap[cat] = (catMap[cat]||0) + Number(r['금액']);
+    cntMap[cat] = (cntMap[cat]||0) + 1;
   });
   const categories = Object.entries(catMap).sort(function(a,b){return b[1]-a[1];}).map(function(entry,i){
-    return { name: entry[0], amount: entry[1], color: getCatColor(entry[0],i) };
+    return { name: entry[0], amount: entry[1], count: cntMap[entry[0]], color: getCatColor(entry[0],i) };
   });
   const total = categories.reduce(function(s,c){return s+c.amount;},0);
   $('donutCenterVal').textContent = (total/10000).toFixed(0);
@@ -770,6 +773,7 @@ function renderDonut(rows, month) {
     item.innerHTML = `
       <div class="legend-swatch" style="background:${cat.color}"></div>
       <div class="legend-name">${cat.name}</div>
+      <div class="legend-count">${cat.count}건</div>
       <div class="legend-amount">${fmt(cat.amount)}</div>
       <div class="legend-pct">${pct}%</div>
     `;

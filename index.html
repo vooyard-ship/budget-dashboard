@@ -185,6 +185,17 @@
   .kpi-sub-split { display: flex; gap: 6px; flex-wrap: wrap; }
   .kpi-sub-split span { white-space: nowrap; }
 
+  /* 수입 대비 지출률 KPI (모바일 히어로 링과 동일 지표) */
+  .ratio-row { display: flex; align-items: center; gap: 12px; margin-top: 2px; }
+  .ratio-ring {
+    width: 52px; height: 52px; border-radius: 50%; flex-shrink: 0; position: relative;
+    display: flex; align-items: center; justify-content: center;
+  }
+  .ratio-ring::before { content: ''; position: absolute; inset: 6px; border-radius: 50%; background: var(--surface); }
+  .ratio-ring span { position: relative; font-size: 14px; font-weight: 800; color: var(--text-primary); font-variant-numeric: tabular-nums; }
+  .ratio-meta { min-width: 0; }
+  .ratio-soji { font-size: 12px; font-weight: 700; color: var(--text-secondary); }
+
   .charts-row { display: grid; grid-template-columns: 1fr 340px; gap: 12px; align-items: stretch; }
   .card.trend-card { display: flex; flex-direction: column; }
   .card { background: var(--surface); border-radius: var(--radius); padding: 20px; box-shadow: var(--shadow); }
@@ -615,6 +626,12 @@ function renderKPI(rows, month) {
   const cardFamily  = rows.filter(function(r){ return isExpense(r) && r['지출방법']==='M가족'; })
                           .reduce(function(s,r){return s+Number(r['금액']);},0);
 
+  // 수입 대비 지출률 (모바일 히어로와 동일 지표) — PC KPI에서도 사용
+  const rate = income > 0 ? Math.min(expense / income * 100, 100) : 0;
+  const reviewCount = rows.filter(function(r){ return String(r['대분류']).indexOf('확인필요') >= 0; }).length;
+  const fixedTotal = rows.filter(function(r){ return r['대분류'] === '고정지출'; })
+                         .reduce(function(s,r){ return s + Number(r['금액']); }, 0);
+
   $('kpiGrid').innerHTML = `
     <div class="kpi-card">
       <div class="kpi-label"><div class="kpi-dot" style="background:var(--income)"></div>이번 달 수입</div>
@@ -631,13 +648,14 @@ function renderKPI(rows, month) {
       <div class="kpi-value" style="color:var(--save)">${fmt(saving)}</div>
       <div class="kpi-sub">${rows.filter(isSaving).length}건</div>
     </div>
-    <div class="kpi-card card-bill">
-      <div class="kpi-label"><div class="kpi-dot" style="background:var(--card)"></div>카드 청구 예정</div>
-      <div class="kpi-value" style="color:var(--card)">${fmt(cardTotal)}</div>
-      <div class="kpi-sub kpi-sub-split">
-        ${cardMe     ? `<span>본인 ${(cardMe/10000).toFixed(1)}만</span>` : ''}
-        ${cardFamily ? `<span>가족 ${(cardFamily/10000).toFixed(1)}만</span>` : ''}
-        ${!cardTotal ? '<span>—</span>' : ''}
+    <div class="kpi-card">
+      <div class="kpi-label"><div class="kpi-dot" style="background:var(--spend)"></div>수입 대비 지출률</div>
+      <div class="ratio-row">
+        <div class="ratio-ring" style="background:conic-gradient(var(--spend) 0% ${rate}%, var(--surface-2) ${rate}% 100%)"><span>${Math.round(rate)}%</span></div>
+        <div class="ratio-meta">
+          <div class="ratio-soji">소진</div>
+          <div class="kpi-sub">⚠️ ${reviewCount}건 · 고정 ${(fixedTotal/10000).toFixed(1)}만</div>
+        </div>
       </div>
     </div>
     <div class="kpi-card">
@@ -647,12 +665,8 @@ function renderKPI(rows, month) {
     </div>
   `;
 
-  // ── 모바일 히어로 ──
+  // ── 모바일 히어로 ── (rate·reviewCount·fixedTotal은 위에서 계산)
   const heroSurplus = income - expense;
-  const rate = income > 0 ? Math.min(expense / income * 100, 100) : 0;
-  const reviewCount = rows.filter(function(r){ return String(r['대분류']).indexOf('확인필요') >= 0; }).length;
-  const fixedTotal = rows.filter(function(r){ return r['대분류'] === '고정지출'; })
-                         .reduce(function(s,r){ return s + Number(r['금액']); }, 0);
   $('heroSurplus').textContent = fmt(heroSurplus);
   $('heroIncome').textContent  = fmt(income);
   $('heroExpense').textContent = fmt(expense);
@@ -788,6 +802,10 @@ function renderFixed(rows, month) {
   const fixedRows = rows.filter(function(r){ return r['대분류'] === '고정지출'; });
   const cardTotal = rows.filter(function(r){ return isExpense(r) && isCard(r); })
                         .reduce(function(s,r){ return s + Number(r['금액']); }, 0);
+  const cardMe     = rows.filter(function(r){ return isExpense(r) && r['지출방법']==='M본인'; })
+                         .reduce(function(s,r){ return s + Number(r['금액']); }, 0);
+  const cardFamily = rows.filter(function(r){ return isExpense(r) && r['지출방법']==='M가족'; })
+                         .reduce(function(s,r){ return s + Number(r['금액']); }, 0);
   const el = $('fixedList');
   el.innerHTML = '';
   if (!fixedRows.length && !cardTotal) {
@@ -804,6 +822,11 @@ function renderFixed(rows, month) {
       <div>
         <div style="font-size:13px;font-weight:700;color:var(--card)">💳 현대카드 결제</div>
         <div style="font-size:11px;color:var(--text-muted);margin-top:2px">매월 17일 (변동)</div>
+        <div style="font-size:11px;color:var(--text-secondary);margin-top:4px;font-variant-numeric:tabular-nums">
+          ${cardMe     ? `본인 ${(cardMe/10000).toFixed(1)}만` : ''}
+          ${cardMe && cardFamily ? ' · ' : ''}
+          ${cardFamily ? `가족 ${(cardFamily/10000).toFixed(1)}만` : ''}
+        </div>
       </div>
       <div style="font-size:16px;font-weight:800;font-variant-numeric:tabular-nums;color:var(--card);flex-shrink:0">${fmt(cardTotal)}</div>
     `;

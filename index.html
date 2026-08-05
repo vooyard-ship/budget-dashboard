@@ -821,14 +821,14 @@ function renderFixed(rows, month) {
   }
   let total = 0;
 
-  // 현대카드 결제 — 별도 강조 박스 (월 합계에는 미포함, 카드값 단독 표시)
+  // 💳 현대카드 결제 — 총 카드 청구(결제원금) 강조 박스
   if (cardTotal > 0) {
     const cardBox = document.createElement('div');
     cardBox.style.cssText = 'padding:12px 14px;background:var(--card-light);border:1px solid var(--card);border-radius:8px;margin-bottom:12px';
     cardBox.innerHTML = `
       <div style="display:flex;align-items:baseline;gap:8px">
         <div style="font-size:13px;font-weight:700;color:var(--card)">💳 현대카드 결제</div>
-        <div style="font-size:11px;color:var(--text-muted)">매월 17일 (변동)</div>
+        <div style="font-size:11px;color:var(--text-muted)">매월 17일 (변동) · 결제원금</div>
       </div>
       <div style="font-size:22px;font-weight:800;font-variant-numeric:tabular-nums;color:var(--card);margin-top:5px">${fmt(cardTotal)}</div>
       <div style="font-size:11px;color:var(--text-secondary);margin-top:3px;font-variant-numeric:tabular-nums">
@@ -840,26 +840,52 @@ function renderFixed(rows, month) {
     el.appendChild(cardBox);
   }
 
-  fixedRows.forEach(function(f) {
-    total += Number(f['금액']);
-    const row = document.createElement('div');
-    row.style.cssText = 'display:flex;align-items:center;justify-content:space-between;gap:12px;padding:8px 0;border-bottom:1px solid var(--border)';
-    row.innerHTML = `
-      <div>
-        <div style="font-size:13px;font-weight:500;color:var(--text-primary)">${f['내용']||''}</div>
-        <div style="font-size:11px;color:var(--text-muted);margin-top:1px">${f['소분류']||''}</div>
-      </div>
-      <div style="font-size:13px;font-weight:700;font-variant-numeric:tabular-nums;color:var(--spend);flex-shrink:0">${fmt(f['금액'])}</div>
+  // 고정지출을 현금 / 카드로 분리, 각각 합계
+  const isCardM = function(r){ return r['지출방법']==='M본인' || r['지출방법']==='M가족'; };
+  const cashFixed = fixedRows.filter(function(r){ return !isCardM(r); });
+  const cardFixed = fixedRows.filter(isCardM);
+
+  function fixedSection(title, dot, items) {
+    if (!items.length) return 0;
+    let sum = 0;
+    const head = document.createElement('div');
+    head.style.cssText = 'display:flex;align-items:center;gap:6px;font-size:12px;font-weight:700;color:var(--text-secondary);margin:14px 0 4px';
+    head.innerHTML = `<span style="width:7px;height:7px;border-radius:50%;background:${dot};display:inline-block"></span>${title}`;
+    el.appendChild(head);
+    items.forEach(function(f) {
+      sum += Number(f['금액']);
+      const row = document.createElement('div');
+      row.style.cssText = 'display:flex;align-items:center;justify-content:space-between;gap:12px;padding:8px 0;border-bottom:1px solid var(--border)';
+      row.innerHTML = `
+        <div>
+          <div style="font-size:13px;font-weight:500;color:var(--text-primary)">${f['내용']||''}</div>
+          <div style="font-size:11px;color:var(--text-muted);margin-top:1px">${f['소분류']||''}</div>
+        </div>
+        <div style="font-size:13px;font-weight:700;font-variant-numeric:tabular-nums;color:var(--spend);flex-shrink:0">${fmt(f['금액'])}</div>
+      `;
+      el.appendChild(row);
+    });
+    const sumRow = document.createElement('div');
+    sumRow.style.cssText = 'display:flex;justify-content:space-between;padding:8px 0 2px;margin-top:2px;border-top:1px solid var(--border)';
+    sumRow.innerHTML = `
+      <div style="font-size:12px;font-weight:700;color:var(--text-muted)">${title} 합계</div>
+      <div style="font-size:15px;font-weight:800;font-variant-numeric:tabular-nums;color:var(--spend)">${sum.toLocaleString()}</div>
     `;
-    el.appendChild(row);
-  });
-  const sumRow = document.createElement('div');
-  sumRow.style.cssText = 'display:flex;justify-content:space-between;padding:12px 0 0;border-top:2px solid var(--border);margin-top:4px';
-  sumRow.innerHTML = `
-    <div style="font-size:12px;font-weight:700;color:var(--text-muted)">현금 고정 합계</div>
-    <div style="font-size:16px;font-weight:800;font-variant-numeric:tabular-nums;color:var(--spend)">${total.toLocaleString()}</div>
+    el.appendChild(sumRow);
+    return sum;
+  }
+
+  const cashSum = fixedSection('현금 고정', 'var(--text-muted)', cashFixed);
+  const cardSum = fixedSection('카드 고정', 'var(--card)', cardFixed);
+
+  // 고정지출 총합계 (현금 + 카드)
+  const grandRow = document.createElement('div');
+  grandRow.style.cssText = 'display:flex;justify-content:space-between;padding:12px 0 0;border-top:2px solid var(--border);margin-top:8px';
+  grandRow.innerHTML = `
+    <div style="font-size:12px;font-weight:800;color:var(--text-secondary)">고정지출 총합계</div>
+    <div style="font-size:16px;font-weight:800;font-variant-numeric:tabular-nums;color:var(--spend)">${(cashSum+cardSum).toLocaleString()}</div>
   `;
-  el.appendChild(sumRow);
+  el.appendChild(grandRow);
 }
 
 function fmtEok(n) {

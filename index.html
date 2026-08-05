@@ -574,7 +574,7 @@ function loadData() {
     .then(function(texts) {
       const data = parseCSV(texts[0]).concat(texts[1] ? parseCSV(texts[1]) : []);
       allData = data.filter(function(r) {
-        return r['금액'] && r['대분류'] && Number(r['금액']) !== 0;
+        return r['금액'] && r['대분류'] && (Number(r['금액']) !== 0 || r['대분류'] === '고정지출');
       });
       const assetRows = texts[2]
         ? parseCSV(texts[2]).filter(function(r){ return r['구분'] && Number(r['금액']); })

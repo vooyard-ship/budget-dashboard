@@ -269,6 +269,9 @@
   .month-amounts { text-align: right; flex-shrink: 0; width: 80px; }
   .month-spend-val { font-size: 12px; font-variant-numeric: tabular-nums; font-weight: 600; color: var(--spend); }
   .month-income-val { font-size: 11px; font-variant-numeric: tabular-nums; color: var(--text-muted); }
+  .months-note { margin-top: 10px; padding-top: 9px; border-top: 1px solid var(--border); font-size: 11.5px; line-height: 1.55; color: var(--text-muted); flex-shrink: 0; }
+  .months-note b { color: var(--text-secondary); font-weight: 600; }
+  .months-note .note-avg { font-variant-numeric: tabular-nums; }
 
   .bottom-row { display: grid; grid-template-columns: 1fr 340px; gap: 12px; align-items: stretch; }
   .tx-card { display: flex; flex-direction: column; }
@@ -393,6 +396,7 @@
         <div class="card-meta">2026년 전체</div>
       </div>
       <div id="months-list" style="flex:1; min-height:0; overflow-y:auto;"></div>
+      <div id="months-note" class="months-note" style="display:none;"></div>
     </div>
     <div class="card">
       <div class="card-header">
@@ -488,6 +492,8 @@ const CARD_URL = './data/card.csv';
 const MANUAL_URL = './data/manual.csv';
 // assets.csv = 자산·부채 스냅샷(잔액=스톡, Claude 관리). 월별 흐름과 분리
 const ASSETS_URL = './data/assets.csv';
+const NOTES_URL  = './data/notes.csv';   // 월별 해석 메모 (Claude 편집)
+let monthNotes = {};                      // { 월번호: 메모 }
 
 function parseCSVLine(line) {
   const res = []; let cur = ''; let inQ = false;
@@ -570,7 +576,8 @@ function loadData() {
   Promise.all([
     fetch(CARD_URL + bust).then(function(r){ if(!r.ok) throw new Error('card ' + r.status); return r.text(); }),
     fetch(MANUAL_URL + bust).then(function(r){ return r.ok ? r.text() : ''; }),  // 수동분 없어도 진행
-    fetch(ASSETS_URL + bust).then(function(r){ return r.ok ? r.text() : ''; })   // 자산 없어도 진행
+    fetch(ASSETS_URL + bust).then(function(r){ return r.ok ? r.text() : ''; }),  // 자산 없어도 진행
+    fetch(NOTES_URL + bust).then(function(r){ return r.ok ? r.text() : ''; })    // 메모 없어도 진행
   ])
     .then(function(texts) {
       const data = parseCSV(texts[0]).concat(texts[1] ? parseCSV(texts[1]) : []);
@@ -581,6 +588,14 @@ function loadData() {
         ? parseCSV(texts[2]).filter(function(r){ return r['구분'] && Number(r['금액']); })
         : [];
       renderAssets(assetRows);
+      monthNotes = {};
+      if (texts[3]) {
+        parseCSV(texts[3]).forEach(function(r){
+          const m = parseInt(r['월'], 10);
+          const memo = (r['메모'] || '').trim();
+          if (m && memo) monthNotes[m] = memo;
+        });
+      }
       const months = [...new Set(allData.map(getMonthNum).filter(Boolean))].sort(function(a,b){return a-b;});
       // 카드 거래(M본인/M가족)가 있는 월 우선 — 고정지출만 있는 미래 달로 자동선택되는 것 방지
       const cardMonths = [...new Set(allData.filter(isCard).map(getMonthNum).filter(Boolean))].sort(function(a,b){return a-b;});
@@ -747,6 +762,43 @@ function renderMonthlyTrend(allRows) {
     `;
     list.appendChild(row);
   });
+  renderMonthsNote(monthData);
+}
+
+// 월별현황 하단 요약 — 통계는 자동 계산, 원인 해석은 data/notes.csv에서
+function renderMonthsNote(monthData) {
+  const note = $('months-note');
+  if (!note) return;
+  const valid = monthData.filter(function(m){ return m.spend > 0; });
+  if (valid.length < 2) { note.style.display = 'none'; return; }
+
+  const avg = valid.reduce(function(s,m){ return s + m.spend; }, 0) / valid.length;
+  const THRESHOLD = 15;   // 평균 대비 ±15% 이상이면 특이월로 표시
+  const num = function(label){ return parseInt(label, 10); };
+
+  const surge = valid.filter(function(m){ return (m.spend - avg) / avg * 100 >= THRESHOLD; })
+                     .sort(function(a,b){ return num(a.label) - num(b.label); });
+  const dip   = valid.filter(function(m){ return (m.spend - avg) / avg * 100 <= -THRESHOLD; })
+                     .sort(function(a,b){ return num(a.label) - num(b.label); });
+
+  const phrase = function(arr, word) {
+    if (!arr.length) return '';
+    const labels = arr.map(function(m){ return m.label; }).join('·');
+    const memos = arr.map(function(m){ return monthNotes[num(m.label)] || ''; }).filter(Boolean);
+    let s = '<b>' + labels + ' 지출 ' + word + '</b>';
+    if (memos.length === arr.length && memos.length > 0) {
+      s += ' — ' + (arr.length > 1 ? '각각 ' : '') + memos.join(', ') + ' 영향';
+    } else if (memos.length > 0) {
+      s += ' — ' + memos.join(', ') + ' 영향';
+    }
+    return s;
+  };
+
+  const parts = [phrase(surge, '급증'), phrase(dip, '저조')].filter(Boolean);
+  const head = parts.length ? parts.join(', ') : '특이 급증·저조 없음';
+  note.innerHTML = '패턴: ' + head + '. 월 평균 지출 <span class="note-avg">'
+                 + Math.round(avg).toLocaleString() + '원</span>.';
+  note.style.display = 'block';
 }
 
 function renderDonut(rows, month) {

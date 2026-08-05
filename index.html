@@ -217,7 +217,13 @@
   }
   .donut-center-label { font-size: 10px; color: var(--text-muted); margin-top: 1px; }
   .legend-list { display: flex; flex-direction: column; gap: 8px; }
+  .legend-group { display: flex; flex-direction: column; }
   .legend-item { display: flex; align-items: center; gap: 8px; }
+  .legend-sub { display: flex; flex-direction: column; gap: 2px; margin: 4px 0 2px 20px; padding-left: 8px; border-left: 2px solid var(--border); }
+  .legend-sub-item { display: flex; align-items: center; gap: 6px; font-size: 11px; color: var(--text-muted); }
+  .legend-sub-name { flex: 1; }
+  .legend-sub-cnt { font-variant-numeric: tabular-nums; opacity: .75; }
+  .legend-sub-amt { font-variant-numeric: tabular-nums; min-width: 56px; text-align: right; }
   .legend-swatch { width: 10px; height: 10px; border-radius: 2px; flex-shrink: 0; }
   .legend-name { font-size: 12px; color: var(--text-secondary); flex: 1; }
   .legend-count { font-size: 11px; color: var(--text-muted); font-variant-numeric: tabular-nums; width: 34px; text-align: right; }
@@ -301,6 +307,7 @@
     .bottom-row .fixed-card { order: -1; }
     .tx-scroll-wrap { flex: none; }
     .tx-scroll { position: static; max-height: 400px; }
+    .legend-sub { display: none; }
     .header { height: auto; min-height: 56px; flex-wrap: wrap; gap: 8px; padding: 10px 16px; }
     .main { padding: 16px 16px 48px; }
     .logo { order: 1; }
@@ -734,10 +741,16 @@ function renderDonut(rows, month) {
   const expenses = rows.filter(isExpense);
   const catMap = {};
   const cntMap = {};
+  const subMap = {};
   expenses.forEach(function(r) {
     const cat = r['대분류'] || '기타';
+    const sub = r['소분류'] || '(미분류)';
     catMap[cat] = (catMap[cat]||0) + Number(r['금액']);
     cntMap[cat] = (cntMap[cat]||0) + 1;
+    if (!subMap[cat]) subMap[cat] = {};
+    if (!subMap[cat][sub]) subMap[cat][sub] = {amt:0, cnt:0};
+    subMap[cat][sub].amt += Number(r['금액']);
+    subMap[cat][sub].cnt += 1;
   });
   const categories = Object.entries(catMap).sort(function(a,b){return b[1]-a[1];}).map(function(entry,i){
     return { name: entry[0], amount: entry[1], count: cntMap[entry[0]], color: getCatColor(entry[0],i) };
@@ -774,18 +787,30 @@ function renderDonut(rows, month) {
 
   const legendEl = $('legendList');
   legendEl.innerHTML = '';
-  categories.slice(0,7).forEach(function(cat) {
+  categories.forEach(function(cat) {
     const pct = total ? ((cat.amount/total)*100).toFixed(0) : 0;
-    const item = document.createElement('div');
-    item.className = 'legend-item';
-    item.innerHTML = `
-      <div class="legend-swatch" style="background:${cat.color}"></div>
-      <div class="legend-name">${cat.name}</div>
-      <div class="legend-count">${cat.count}건</div>
-      <div class="legend-amount">${fmt(cat.amount)}</div>
-      <div class="legend-pct">${pct}%</div>
-    `;
-    legendEl.appendChild(item);
+    const group = document.createElement('div');
+    group.className = 'legend-group';
+    var html = `
+      <div class="legend-item">
+        <div class="legend-swatch" style="background:${cat.color}"></div>
+        <div class="legend-name">${cat.name}</div>
+        <div class="legend-count">${cat.count}건</div>
+        <div class="legend-amount">${fmt(cat.amount)}</div>
+        <div class="legend-pct">${pct}%</div>
+      </div>`;
+    var subs = Object.entries(subMap[cat.name]||{}).sort(function(a,b){return b[1].amt-a[1].amt;});
+    if (subs.length) {
+      html += '<div class="legend-sub">';
+      subs.forEach(function(s){
+        html += '<div class="legend-sub-item"><span class="legend-sub-name">'+s[0]+
+                '</span><span class="legend-sub-cnt">'+s[1].cnt+'건</span>'+
+                '<span class="legend-sub-amt">'+fmt(s[1].amt)+'</span></div>';
+      });
+      html += '</div>';
+    }
+    group.innerHTML = html;
+    legendEl.appendChild(group);
   });
 }
 

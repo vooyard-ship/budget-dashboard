@@ -219,7 +219,10 @@
   .legend-list { display: flex; flex-direction: column; gap: 8px; }
   .legend-group { display: flex; flex-direction: column; }
   .legend-item { display: flex; align-items: center; gap: 8px; }
-  .legend-sub { display: flex; flex-direction: column; gap: 2px; margin: 4px 0 2px 20px; padding-left: 8px; border-left: 2px solid var(--border); }
+  .legend-caret { font-size: 9px; color: var(--text-muted); width: 10px; flex-shrink: 0; transition: transform .15s; }
+  .legend-group.open .legend-caret { transform: rotate(90deg); }
+  .legend-sub { display: none; flex-direction: column; gap: 2px; margin: 4px 0 2px 22px; padding-left: 8px; border-left: 2px solid var(--border); }
+  .legend-group.open .legend-sub { display: flex; }
   .legend-sub-item { display: flex; align-items: center; gap: 6px; font-size: 11px; color: var(--text-muted); }
   .legend-sub-name { flex: 1; }
   .legend-sub-cnt { font-variant-numeric: tabular-nums; opacity: .75; }
@@ -244,6 +247,7 @@
     display: inline-flex; align-items: center; gap: 4px; font-size: 11px;
     color: var(--text-secondary); background: var(--surface-2); padding: 2px 7px; border-radius: 4px;
   }
+  .tx-subcat { font-size: 11px; color: var(--text-muted); margin-left: 5px; white-space: nowrap; }
   .tx-date { color: var(--text-muted); font-size: 12px; font-variant-numeric: tabular-nums; white-space: nowrap; }
   .tx-table td:first-child { padding-right: 12px; }
   .tx-amount { text-align: right; font-variant-numeric: tabular-nums; font-weight: 600; font-size: 13px; }
@@ -307,7 +311,6 @@
     .bottom-row .fixed-card { order: -1; }
     .tx-scroll-wrap { flex: none; }
     .tx-scroll { position: static; max-height: 400px; }
-    .legend-sub { display: none; }
     .header { height: auto; min-height: 56px; flex-wrap: wrap; gap: 8px; padding: 10px 16px; }
     .main { padding: 16px 16px 48px; }
     .logo { order: 1; }
@@ -789,17 +792,17 @@ function renderDonut(rows, month) {
   legendEl.innerHTML = '';
   categories.forEach(function(cat) {
     const pct = total ? ((cat.amount/total)*100).toFixed(0) : 0;
+    const subs = Object.entries(subMap[cat.name]||{}).sort(function(a,b){return b[1].amt-a[1].amt;});
     const group = document.createElement('div');
     group.className = 'legend-group';
-    var html = `
-      <div class="legend-item">
-        <div class="legend-swatch" style="background:${cat.color}"></div>
-        <div class="legend-name">${cat.name}</div>
-        <div class="legend-count">${cat.count}건</div>
-        <div class="legend-amount">${fmt(cat.amount)}</div>
-        <div class="legend-pct">${pct}%</div>
-      </div>`;
-    var subs = Object.entries(subMap[cat.name]||{}).sort(function(a,b){return b[1].amt-a[1].amt;});
+    var html = '<div class="legend-item"'+(subs.length?' onclick="this.parentNode.classList.toggle(\'open\')" style="cursor:pointer"':'')+'>'+
+      '<span class="legend-caret">'+(subs.length?'▸':'')+'</span>'+
+      '<div class="legend-swatch" style="background:'+cat.color+'"></div>'+
+      '<div class="legend-name">'+cat.name+'</div>'+
+      '<div class="legend-count">'+cat.count+'건</div>'+
+      '<div class="legend-amount">'+fmt(cat.amount)+'</div>'+
+      '<div class="legend-pct">'+pct+'%</div>'+
+    '</div>';
     if (subs.length) {
       html += '<div class="legend-sub">';
       subs.forEach(function(s){
@@ -828,7 +831,7 @@ function renderTransactions(rows) {
     tr.innerHTML = `
       <td class="tx-date">${fmtDate(tx['날짜'])}</td>
       <td><div class="tx-name">${tx['내용']||''}</div></td>
-      <td><span class="tx-cat">${tx['대분류']||''}</span></td>
+      <td><span class="tx-cat">${tx['대분류']||''}</span>${tx['소분류']?`<span class="tx-subcat">${tx['소분류']}</span>`:''}</td>
       <td class="tx-amount ${cls}">${sign}${fmt(tx['금액'])}</td>
     `;
     tbody.appendChild(tr);

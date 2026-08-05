@@ -257,7 +257,8 @@
 
   .bottom-row { display: grid; grid-template-columns: 1fr 340px; gap: 12px; align-items: stretch; }
   .tx-card { display: flex; flex-direction: column; }
-  .tx-scroll { overflow-x: auto; overflow-y: auto; flex: 1 1 auto; min-height: 0; }
+  .tx-scroll-wrap { flex: 1 1 auto; min-height: 0; position: relative; }
+  .tx-scroll { position: absolute; inset: 0; overflow-x: auto; overflow-y: auto; }
 
   .surplus-pos { color: var(--income); font-weight: 700; }
   .surplus-neg { color: var(--spend); font-weight: 700; }
@@ -298,7 +299,8 @@
     .charts-row, .bottom-row { grid-template-columns: 1fr; }
     .bottom-row { align-items: start; }
     .bottom-row .fixed-card { order: -1; }
-    .tx-scroll { max-height: 400px; flex: none; }
+    .tx-scroll-wrap { flex: none; }
+    .tx-scroll { position: static; max-height: 400px; }
     .header { height: auto; min-height: 56px; flex-wrap: wrap; gap: 8px; padding: 10px 16px; }
     .main { padding: 16px 16px 48px; }
     .logo { order: 1; }
@@ -400,7 +402,7 @@
         <div class="card-title">최근 거래</div>
         <div class="card-meta" id="txMeta">최근 20건</div>
       </div>
-      <div class="tx-scroll">
+      <div class="tx-scroll-wrap"><div class="tx-scroll">
         <table class="tx-table">
           <thead>
             <tr>
@@ -409,7 +411,7 @@
           </thead>
           <tbody id="txBody"></tbody>
         </table>
-      </div>
+      </div></div>
     </div>
     <div class="card fixed-card">
       <div class="card-header">

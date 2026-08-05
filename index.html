@@ -255,7 +255,9 @@
   .month-spend-val { font-size: 12px; font-variant-numeric: tabular-nums; font-weight: 600; color: var(--spend); }
   .month-income-val { font-size: 11px; font-variant-numeric: tabular-nums; color: var(--text-muted); }
 
-  .bottom-row { display: grid; grid-template-columns: 1fr 340px; gap: 12px; align-items: start; }
+  .bottom-row { display: grid; grid-template-columns: 1fr 340px; gap: 12px; align-items: stretch; }
+  .tx-card { display: flex; flex-direction: column; }
+  .tx-scroll { overflow-x: auto; overflow-y: auto; flex: 1 1 auto; min-height: 0; }
 
   .surplus-pos { color: var(--income); font-weight: 700; }
   .surplus-neg { color: var(--spend); font-weight: 700; }
@@ -294,7 +296,9 @@
     .kpi-grid { display: none; }
     .kpi-grid > .kpi-card:last-child { grid-column: 1 / -1; }
     .charts-row, .bottom-row { grid-template-columns: 1fr; }
+    .bottom-row { align-items: start; }
     .bottom-row .fixed-card { order: -1; }
+    .tx-scroll { max-height: 400px; flex: none; }
     .header { height: auto; min-height: 56px; flex-wrap: wrap; gap: 8px; padding: 10px 16px; }
     .main { padding: 16px 16px 48px; }
     .logo { order: 1; }
@@ -391,12 +395,12 @@
   </div>
 
   <div class="bottom-row">
-    <div class="card">
+    <div class="card tx-card">
       <div class="card-header">
         <div class="card-title">최근 거래</div>
         <div class="card-meta" id="txMeta">최근 20건</div>
       </div>
-      <div style="overflow-x:auto; overflow-y:auto; max-height:400px;">
+      <div class="tx-scroll">
         <table class="tx-table">
           <thead>
             <tr>

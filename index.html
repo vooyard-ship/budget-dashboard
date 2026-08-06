@@ -95,6 +95,30 @@
     box-shadow: 0 1px 2px rgba(0,0,0,0.08);
   }
   .header-right { display: flex; align-items: center; gap: 8px; font-size: 12px; color: var(--text-muted); }
+
+  /* 모바일 월 선택 — 칩 + 드롭다운 (PC에선 숨김, 데스크탑은 기존 12버튼 유지) */
+  .month-chip-wrap { display: none; position: relative; }
+  .month-chip {
+    background: var(--surface); border: 1px solid var(--border); border-radius: 99px;
+    padding: 5px 12px; font-size: 12.5px; font-weight: 600; color: var(--text-primary);
+    display: flex; align-items: center; gap: 4px; cursor: pointer; font-family: inherit;
+    line-height: 1.4;
+  }
+  .month-chip .caret { font-size: 9px; color: var(--text-muted); transition: transform .18s; }
+  .month-chip-wrap.open .caret { transform: rotate(180deg); }
+  .month-menu {
+    position: absolute; top: calc(100% + 6px); right: 0; z-index: 40;
+    background: var(--surface); border: 1px solid var(--border); border-radius: 12px;
+    padding: 6px; box-shadow: 0 8px 24px rgba(0,0,0,.14);
+    display: none; grid-template-columns: repeat(3, 1fr); gap: 4px; min-width: 168px;
+  }
+  .month-chip-wrap.open .month-menu { display: grid; }
+  .month-menu button {
+    background: none; border: none; border-radius: 8px; padding: 9px 0;
+    font-size: 12.5px; color: var(--text-secondary); font-family: inherit; cursor: pointer;
+  }
+  .month-menu button.active { background: var(--save); color: #fff; font-weight: 700; }
+  .month-menu button.empty { opacity: .35; }
   .badge-sync {
     background: var(--surface-2); color: var(--text-muted);
     padding: 2px 8px; border-radius: 99px; font-size: 11px; font-weight: 600;
@@ -324,8 +348,9 @@
     .main { padding: 16px 16px 48px; }
     .logo { order: 1; }
     .header-right { order: 2; margin-left: auto; }
-    .period-selector { order: 3; width: 100%; display: grid; grid-template-columns: repeat(6, 1fr); gap: 3px; overflow: visible; margin-left: 0; padding: 3px; }
-    .period-btn { text-align: center; padding: 6px 4px; }
+    .period-selector { display: none; }              /* 월 버튼 12개 → 칩+드롭다운으로 대체 */
+    .month-chip-wrap { display: block; order: 2; margin-left: auto; }
+    .header-right { order: 3; margin-left: 8px; }
   }
 
   /* 심플·투명 스크롤바 (모바일 스타일) */
@@ -343,6 +368,12 @@
 <div class="header">
   <div class="logo">쌍뽕이네 <span>가계부</span><span class="ver">v9.0</span></div>
   <div class="period-selector" id="periodBtns"></div>
+  <div class="month-chip-wrap" id="monthChipWrap">
+    <button class="month-chip" id="monthChip" type="button" aria-haspopup="true" aria-expanded="false">
+      <span id="monthChipLabel">—</span><span class="caret">▼</span>
+    </button>
+    <div class="month-menu" id="monthMenu"></div>
+  </div>
   <div class="header-right">
     <span class="badge-sync" id="syncBadge">로딩 중...</span>
     <span id="lastUpdate"></span>
@@ -687,14 +718,58 @@ function initMonthButtons(months) {
     if (!hasData) btn.style.opacity = '0.4';
     btn.textContent = m + '월';
     const _m = m;
-    btn.onclick = function() {
-      selectedMonth = _m;
-      document.querySelectorAll('.period-btn').forEach(function(b){ b.classList.remove('active'); });
-      btn.classList.add('active');
-      render(_m);
-    };
+    btn.onclick = function() { selectMonth(_m); };
     wrap.appendChild(btn);
   }
+  initMonthChip(months);
+}
+
+// 모바일 월 칩 + 드롭다운
+function initMonthChip(months) {
+  const wrap = $('monthChipWrap'), menu = $('monthMenu'), chip = $('monthChip');
+  if (!wrap || !menu || !chip) return;
+  menu.innerHTML = '';
+  for (var m = 1; m <= 12; m++) {
+    const b = document.createElement('button');
+    b.type = 'button';
+    b.textContent = m + '월';
+    b.className = (m === selectedMonth ? 'active' : '') + (months.includes(m) ? '' : ' empty');
+    const _m = m;
+    b.onclick = function(e) { e.stopPropagation(); selectMonth(_m); closeMonthMenu(); };
+    menu.appendChild(b);
+  }
+  updateMonthChip();
+  chip.onclick = function(e) {
+    e.stopPropagation();
+    const open = wrap.classList.toggle('open');
+    chip.setAttribute('aria-expanded', open ? 'true' : 'false');
+  };
+  document.addEventListener('click', closeMonthMenu);
+}
+
+function closeMonthMenu() {
+  const wrap = $('monthChipWrap'), chip = $('monthChip');
+  if (!wrap) return;
+  wrap.classList.remove('open');
+  if (chip) chip.setAttribute('aria-expanded', 'false');
+}
+
+function updateMonthChip() {
+  const label = $('monthChipLabel');
+  if (label) label.textContent = selectedMonth + '월';
+  document.querySelectorAll('#monthMenu button').forEach(function(b) {
+    b.classList.toggle('active', b.textContent === selectedMonth + '월');
+  });
+}
+
+// 월 선택 — PC 버튼·모바일 칩 어느 쪽에서 눌러도 같은 경로
+function selectMonth(m) {
+  selectedMonth = m;
+  document.querySelectorAll('.period-btn').forEach(function(b) {
+    b.classList.toggle('active', b.textContent === m + '월');
+  });
+  updateMonthChip();
+  render(m);
 }
 
 function render(month) {

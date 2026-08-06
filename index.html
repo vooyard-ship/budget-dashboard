@@ -76,6 +76,7 @@
   .header-left { display: flex; align-items: center; gap: 12px; flex: 1; min-width: 0; }
   .logo { font-size: 15px; font-weight: 700; letter-spacing: -0.3px; color: var(--text-primary); white-space: nowrap; }
   .logo span { color: var(--save); }
+  .logo .ver { font-size: 10.5px; font-weight: 600; color: var(--text-muted); margin-left: 5px; letter-spacing: 0; vertical-align: 1px; }
   .period-selector {
     display: flex;
     background: var(--surface-2);
@@ -340,7 +341,7 @@
 
 <!-- Header -->
 <div class="header">
-  <div class="logo">쌍뽕이네 <span>가계부</span></div>
+  <div class="logo">쌍뽕이네 <span>가계부</span><span class="ver">v9.0</span></div>
   <div class="period-selector" id="periodBtns"></div>
   <div class="header-right">
     <span class="badge-sync" id="syncBadge">로딩 중...</span>

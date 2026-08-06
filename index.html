@@ -495,6 +495,57 @@ const ASSETS_URL = './data/assets.csv';
 const NOTES_URL  = './data/notes.csv';   // 월별 해석 메모 (Claude 편집)
 let monthNotes = {};                      // { 월번호: 메모 }
 
+// ── 암호화 데이터(.enc) 지원 ────────────────────────────────
+// 공개 저장소에 상호명을 평문으로 두지 않기 위해 AES-256-GCM으로 암호화해 올린다.
+// 비번은 URL 해시(#p=...) → localStorage → 입력창 순으로 찾는다.
+const PW_KEY = 'bd_pw';
+let dashPw = null;
+
+function getStoredPw() {
+  const m = location.hash.match(/[#&]p=([^&]+)/);
+  if (m) {
+    const pw = decodeURIComponent(m[1]);
+    try { localStorage.setItem(PW_KEY, pw); } catch (e) {}
+    history.replaceState(null, '', location.pathname + location.search);  // 주소창에서 비번 감춤
+    return pw;
+  }
+  try { return localStorage.getItem(PW_KEY); } catch (e) { return null; }
+}
+
+async function decryptBlob(b64, pw) {
+  const raw = Uint8Array.from(atob(b64.trim()), function(c){ return c.charCodeAt(0); });
+  const salt = raw.slice(0, 16), nonce = raw.slice(16, 28), ct = raw.slice(28);
+  const base = await crypto.subtle.importKey('raw', new TextEncoder().encode(pw),
+                                             'PBKDF2', false, ['deriveKey']);
+  const key = await crypto.subtle.deriveKey(
+    { name: 'PBKDF2', salt: salt, iterations: 210000, hash: 'SHA-256' },
+    base, { name: 'AES-GCM', length: 256 }, false, ['decrypt']);
+  const out = await crypto.subtle.decrypt({ name: 'AES-GCM', iv: nonce }, key, ct);
+  return new TextDecoder().decode(out);
+}
+
+// .enc 우선, 없으면 평문 CSV로 폴백 (전환기 호환)
+async function fetchCsv(url, required) {
+  const bust = '?t=' + Date.now();
+  const enc = await fetch(url + '.enc' + bust).catch(function(){ return { ok: false }; });
+  if (enc.ok) {
+    const blob = await enc.text();
+    return await decryptBlob(blob, dashPw);      // 비번 틀리면 여기서 throw
+  }
+  const plain = await fetch(url + bust);
+  if (!plain.ok) {
+    if (required) throw new Error(url + ' ' + plain.status);
+    return '';
+  }
+  return await plain.text();
+}
+
+function askPassword(msg) {
+  const pw = window.prompt(msg || '대시보드 비밀번호를 입력하세요');
+  if (pw) { try { localStorage.setItem(PW_KEY, pw); } catch (e) {} }
+  return pw;
+}
+
 function parseCSVLine(line) {
   const res = []; let cur = ''; let inQ = false;
   for (let i = 0; i < line.length; i++) {
@@ -572,12 +623,12 @@ function loadData() {
   $('errorWrap').style.display = 'none';
   $('mainContent').style.display = 'none';
 
-  const bust = '?t=' + Date.now();
+  dashPw = dashPw || getStoredPw();
   Promise.all([
-    fetch(CARD_URL + bust).then(function(r){ if(!r.ok) throw new Error('card ' + r.status); return r.text(); }),
-    fetch(MANUAL_URL + bust).then(function(r){ return r.ok ? r.text() : ''; }),  // 수동분 없어도 진행
-    fetch(ASSETS_URL + bust).then(function(r){ return r.ok ? r.text() : ''; }),  // 자산 없어도 진행
-    fetch(NOTES_URL + bust).then(function(r){ return r.ok ? r.text() : ''; })    // 메모 없어도 진행
+    fetchCsv(CARD_URL, true),
+    fetchCsv(MANUAL_URL, false),   // 수동분 없어도 진행
+    fetchCsv(ASSETS_URL, false),   // 자산 없어도 진행
+    fetchCsv(NOTES_URL, false)     // 메모 없어도 진행
   ])
     .then(function(texts) {
       const data = parseCSV(texts[0]).concat(texts[1] ? parseCSV(texts[1]) : []);
@@ -607,11 +658,20 @@ function loadData() {
       render(selectedMonth);
       $('loadingWrap').style.display = 'none';
       $('mainContent').style.display = 'flex';
-      $('syncBadge').textContent = 'CSV 연동';
+      $('syncBadge').textContent = dashPw ? '🔒 암호화 연동' : 'CSV 연동';
       $('syncBadge').className = 'badge-sync ok';
       $('lastUpdate').textContent = allData.length + '건';
     })
     .catch(function(e) {
+      // 복호화 실패 = 비번 없음/틀림 → 다시 입력받아 재시도
+      const isPwErr = (e.name === 'OperationError') || /operation-specific reason|decrypt/i.test(e.message || '');
+      if (isPwErr || (!dashPw && /\.enc/.test(e.message || ''))) {
+        try { localStorage.removeItem(PW_KEY); } catch (err) {}
+        const pw = askPassword(dashPw ? '비밀번호가 맞지 않습니다. 다시 입력해주세요' : '대시보드 비밀번호를 입력하세요');
+        if (pw) { dashPw = pw; loadData(); return; }
+        showError('비밀번호가 필요합니다');
+        return;
+      }
       showError(e.message);
     });
 }

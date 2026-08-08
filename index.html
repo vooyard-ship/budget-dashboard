@@ -625,9 +625,9 @@ const CAT_COLORS = {
 };
 const PALETTE = ['#6A94F0','#E05A3A','#F0A050','#3A9E71','#9896A4','#C4BEDB','#9B59B6','#E67E22','#1ABC9C','#27AE60'];
 
-// 최근거래 지출방법 표시 — 점 색 + 툴팁. 카드=주황(--card), 현금=보라(--cash, 수입 초록과 겹치지 않게), 체크카드=파랑(--save)
-const PAY_COLORS = { 'M본인':'var(--card)', 'M가족':'var(--card)', '현금(브)':'var(--cash)', '현금(재)':'var(--cash)', '체크(브)':'var(--save)' };
-const PAY_LABELS = { 'M본인':'카드(본인)', 'M가족':'카드(가족)', '현금(브)':'현금', '현금(재)':'현금', '체크(브)':'체크카드' };
+// 최근거래 지출방법 표시 — 점 색 + 툴팁. 카드=주황(--card), 현금(체크카드 포함)=보라(--cash, 수입 초록과 겹치지 않게)
+const PAY_COLORS = { 'M본인':'var(--card)', 'M가족':'var(--card)', '현금(브)':'var(--cash)', '현금(재)':'var(--cash)' };
+const PAY_LABELS = { 'M본인':'카드(본인)', 'M가족':'카드(가족)', '현금(브)':'현금', '현금(재)':'현금' };
 
 let allData = [];
 let selectedMonth = new Date().getMonth() + 1;
@@ -1026,10 +1026,10 @@ function renderDonut(rows, month) {
   });
 }
 
-// 카드/현금/체크카드 점 색 범례 — 실제 등장하는 지출방법만 표시
+// 카드/현금 점 색 범례 — 실제 등장하는 지출방법만 표시
 function renderPayLegend(rows) {
   const el = $('payLegend'); if (!el) return;
-  const order = ['M본인', 'M가족', '현금(브)', '현금(재)', '체크(브)'];
+  const order = ['M본인', 'M가족', '현금(브)', '현금(재)'];
   const seen = new Set(rows.map(function(r){ return r['지출방법']; }));
   const groups = [];   // 같은 색은 한 번만 표시 (M본인/M가족 → 카드, 현금(브)/현금(재) → 현금)
   const usedColors = new Set();
@@ -1059,7 +1059,7 @@ function renderTransactions(rows) {
     const isCardTx = CARD_METHODS.includes(payMethod);
     const payColor = PAY_COLORS[payMethod] || 'var(--text-muted)';
     const payLabel = PAY_LABELS[payMethod] || payMethod;
-    // 카드는 기존 지출/수입 색 유지, 현금·체크카드는 점 색과 금액 글자색을 통일
+    // 카드는 기존 지출/수입 색 유지, 현금은 점 색과 금액 글자색을 통일
     const amountStyle = isCardTx ? '' : `style="color:${payColor}"`;
     const amountCls = isCardTx ? cls : '';
     const tr = document.createElement('tr');

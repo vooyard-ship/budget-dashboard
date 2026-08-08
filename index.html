@@ -1090,13 +1090,16 @@ function renderFixed(rows, month) {
   let total = 0;
 
   // 💳 현대카드 결제 — 총 카드 청구(결제원금) 강조 박스
+  // 결제일 = 이용월 다음 달 12일 고정(현대카드 명세서 "결제일" 필드 확인됨. "매월 17일"은 오기였음)
   if (cardTotal > 0) {
+    const payMonth = (month % 12) + 1;
+    const payLabel = String(payMonth).padStart(2,'0') + '월12일';
     const cardBox = document.createElement('div');
     cardBox.style.cssText = 'padding:12px 14px;background:var(--card-light);border:1px solid var(--card);border-radius:8px;margin-bottom:12px';
     cardBox.innerHTML = `
       <div style="display:flex;align-items:baseline;gap:8px">
         <div style="font-size:13px;font-weight:700;color:var(--card)">💳 현대카드 결제</div>
-        <div style="font-size:11px;color:var(--text-muted)">매월 17일 (변동) · 결제원금</div>
+        <div style="font-size:11px;color:var(--text-muted)">${payLabel} · 결제원금</div>
       </div>
       <div style="font-size:22px;font-weight:800;font-variant-numeric:tabular-nums;color:var(--card);margin-top:5px">${fmt(cardTotal)}</div>
       <div style="font-size:11px;color:var(--text-secondary);margin-top:3px;font-variant-numeric:tabular-nums">

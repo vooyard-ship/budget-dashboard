@@ -279,6 +279,7 @@
   }
   .tx-subcat { font-size: 11px; color: var(--text-muted); margin-left: 5px; white-space: nowrap; }
   .tx-date { color: var(--text-muted); font-size: 12px; font-variant-numeric: tabular-nums; white-space: nowrap; }
+  .pay-dot { display: inline-block; width: 6px; height: 6px; border-radius: 50%; margin-right: 5px; vertical-align: middle; flex-shrink: 0; }
   .tx-table td:first-child { padding-right: 12px; }
   .tx-amount { text-align: right; font-variant-numeric: tabular-nums; font-weight: 600; font-size: 13px; }
   .tx-amount.spend { color: var(--spend); }
@@ -617,6 +618,10 @@ const CAT_COLORS = {
   '⚠️확인필요':'#E84393','확인필요':'#E84393','기타':'#B0AEC0',
 };
 const PALETTE = ['#6A94F0','#E05A3A','#F0A050','#3A9E71','#9896A4','#C4BEDB','#9B59B6','#E67E22','#1ABC9C','#27AE60'];
+
+// 최근거래 지출방법 표시 — 점 색 + 툴팁. 카드=주황(--card), 현금=초록(--income), 체크카드=파랑(--save)
+const PAY_COLORS = { 'M본인':'var(--card)', 'M가족':'var(--card)', '현금(브)':'var(--income)', '현금(재)':'var(--income)', '체크(브)':'var(--save)' };
+const PAY_LABELS = { 'M본인':'카드(본인)', 'M가족':'카드(가족)', '현금(브)':'현금', '현금(재)':'현금', '체크(브)':'체크카드' };
 
 let allData = [];
 let selectedMonth = new Date().getMonth() + 1;
@@ -1025,9 +1030,12 @@ function renderTransactions(rows) {
     const sav = isSaving(tx);
     const cls = inc ? 'income' : sav ? 'saving' : 'spend';
     const sign = (inc || sav) ? '+' : '';
+    const payMethod = tx['지출방법'] || '';
+    const payColor = PAY_COLORS[payMethod] || 'var(--text-muted)';
+    const payLabel = PAY_LABELS[payMethod] || payMethod;
     const tr = document.createElement('tr');
     tr.innerHTML = `
-      <td class="tx-date">${fmtDate(tx['날짜'])}</td>
+      <td class="tx-date"><span class="pay-dot" style="background:${payColor}" title="${payLabel}"></span>${fmtDate(tx['날짜'])}</td>
       <td><div class="tx-name">${tx['내용']||''}</div></td>
       <td><span class="tx-cat">${tx['대분류']||''}</span>${tx['소분류']?`<span class="tx-subcat">${tx['소분류']}</span>`:''}</td>
       <td class="tx-amount ${cls}">${sign}${fmt(tx['금액'])}</td>

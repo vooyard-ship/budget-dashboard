@@ -1080,7 +1080,8 @@ function renderTransactions(rows) {
 
 function renderFixed(rows, month) {
   $('fixedMeta').textContent = month + '월';
-  const fixedRows = rows.filter(function(r){ return r['대분류'] === '고정지출'; });
+  // "매월 나가는 것" 목록이 목적이므로 고정지출뿐 아니라 구독(정기결제)도 포함한다
+  const fixedRows = rows.filter(function(r){ return r['대분류'] === '고정지출' || r['대분류'] === '구독'; });
   // manual.csv 환불상계 등은 지출방법=M본인/가족이어도 실제 카드 승인 거래가 아니므로 제외
   const cardOnly   = rows.filter(function(r){ return isExpense(r) && isCard(r) && r.__src === 'card'; });
   const cardTotal  = cardOnly.reduce(function(s,r){ return s + Number(r['금액']); }, 0);

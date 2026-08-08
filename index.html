@@ -673,7 +673,12 @@ function loadData() {
     fetchCsv(NOTES_URL, false)     // 메모 없어도 진행
   ])
     .then(function(texts) {
-      const data = parseCSV(texts[0]).concat(texts[1] ? parseCSV(texts[1]) : []);
+      // 출처 태그(__src) — "카드결제" 박스는 card.csv(실제 카드사 명세서 원본)만 합산해야 한다.
+      // manual.csv의 환불상계 같은 회계조정 항목도 지출방법=M본인 등으로 태그돼 있어
+      // 구분 없이 합치면 원거래와 상쇄되어 명세서 금액보다 적게 표시된다.
+      const cardSrc   = parseCSV(texts[0]).map(function(r){ r.__src = 'card';   return r; });
+      const manualSrc = texts[1] ? parseCSV(texts[1]).map(function(r){ r.__src = 'manual'; return r; }) : [];
+      const data = cardSrc.concat(manualSrc);
       allData = data.filter(function(r) {
         return r['금액'] && r['대분류'] && (Number(r['금액']) !== 0 || r['대분류'] === '고정지출');
       });
@@ -809,12 +814,13 @@ function renderKPI(rows, month) {
     heroExpDiff = ` · <span class="diff">${up?'▲':'▼'}${Math.abs(pct).toFixed(0)}% 전월대비</span>`;
   }
 
-  // 카드 청구 = isExpense이면서 지출방법이 M본인 or M가족인 행 합산
-  const cardRows    = rows.filter(function(r){ return isExpense(r) && isCard(r); });
+  // 카드 청구 = card.csv(실제 명세서) 원본만. manual.csv 환불상계 등 회계조정 항목은
+  // 지출방법이 M본인/M가족으로 태그돼 있어도 실제 카드 승인 거래가 아니므로 제외한다.
+  const cardRows    = rows.filter(function(r){ return isExpense(r) && isCard(r) && r.__src === 'card'; });
   const cardTotal   = cardRows.reduce(function(s,r){return s+Number(r['금액']);},0);
-  const cardMe      = rows.filter(function(r){ return isExpense(r) && r['지출방법']==='M본인'; })
+  const cardMe      = cardRows.filter(function(r){ return r['지출방법']==='M본인'; })
                           .reduce(function(s,r){return s+Number(r['금액']);},0);
-  const cardFamily  = rows.filter(function(r){ return isExpense(r) && r['지출방법']==='M가족'; })
+  const cardFamily  = cardRows.filter(function(r){ return r['지출방법']==='M가족'; })
                           .reduce(function(s,r){return s+Number(r['금액']);},0);
 
   // 수입 대비 지출률 (모바일 히어로와 동일 지표) — PC KPI에서도 사용
@@ -1075,11 +1081,12 @@ function renderTransactions(rows) {
 function renderFixed(rows, month) {
   $('fixedMeta').textContent = month + '월';
   const fixedRows = rows.filter(function(r){ return r['대분류'] === '고정지출'; });
-  const cardTotal = rows.filter(function(r){ return isExpense(r) && isCard(r); })
-                        .reduce(function(s,r){ return s + Number(r['금액']); }, 0);
-  const cardMe     = rows.filter(function(r){ return isExpense(r) && r['지출방법']==='M본인'; })
+  // manual.csv 환불상계 등은 지출방법=M본인/가족이어도 실제 카드 승인 거래가 아니므로 제외
+  const cardOnly   = rows.filter(function(r){ return isExpense(r) && isCard(r) && r.__src === 'card'; });
+  const cardTotal  = cardOnly.reduce(function(s,r){ return s + Number(r['금액']); }, 0);
+  const cardMe     = cardOnly.filter(function(r){ return r['지출방법']==='M본인'; })
                          .reduce(function(s,r){ return s + Number(r['금액']); }, 0);
-  const cardFamily = rows.filter(function(r){ return isExpense(r) && r['지출방법']==='M가족'; })
+  const cardFamily = cardOnly.filter(function(r){ return r['지출방법']==='M가족'; })
                          .reduce(function(s,r){ return s + Number(r['금액']); }, 0);
   const el = $('fixedList');
   el.innerHTML = '';

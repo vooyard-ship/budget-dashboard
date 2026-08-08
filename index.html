@@ -280,6 +280,8 @@
   .tx-subcat { font-size: 11px; color: var(--text-muted); margin-left: 5px; white-space: nowrap; }
   .tx-date { color: var(--text-muted); font-size: 12px; font-variant-numeric: tabular-nums; white-space: nowrap; }
   .pay-dot { display: inline-block; width: 6px; height: 6px; border-radius: 50%; margin-right: 5px; vertical-align: middle; flex-shrink: 0; }
+  .pay-legend { display: flex; align-items: center; gap: 8px; font-size: 10.5px; color: var(--text-muted); white-space: nowrap; }
+  .pay-legend span { display: inline-flex; align-items: center; gap: 3px; }
   .tx-table td:first-child { padding-right: 12px; }
   .tx-amount { text-align: right; font-variant-numeric: tabular-nums; font-weight: 600; font-size: 13px; }
   .tx-amount.spend { color: var(--spend); }
@@ -453,7 +455,10 @@
     <div class="card tx-card">
       <div class="card-header">
         <div class="card-title">최근 거래</div>
-        <div class="card-meta" id="txMeta">최근 20건</div>
+        <div style="display:flex;align-items:center;gap:10px">
+          <div class="pay-legend" id="payLegend"></div>
+          <div class="card-meta" id="txMeta">최근 20건</div>
+        </div>
       </div>
       <div class="tx-scroll-wrap"><div class="tx-scroll">
         <table class="tx-table">
@@ -1020,8 +1025,27 @@ function renderDonut(rows, month) {
   });
 }
 
+// 카드/현금/체크카드 점 색 범례 — 실제 등장하는 지출방법만 표시
+function renderPayLegend(rows) {
+  const el = $('payLegend'); if (!el) return;
+  const order = ['M본인', 'M가족', '현금(브)', '현금(재)', '체크(브)'];
+  const seen = new Set(rows.map(function(r){ return r['지출방법']; }));
+  const groups = [];   // 같은 색은 한 번만 표시 (M본인/M가족 → 카드, 현금(브)/현금(재) → 현금)
+  const usedColors = new Set();
+  order.forEach(function(m) {
+    if (!seen.has(m)) return;
+    const color = PAY_COLORS[m]; if (usedColors.has(color)) return;
+    usedColors.add(color);
+    groups.push({ color: color, label: PAY_LABELS[m].replace(/\(.+\)/, '') });
+  });
+  el.innerHTML = groups.map(function(g) {
+    return `<span><span class="pay-dot" style="background:${g.color};margin-right:3px"></span>${g.label}</span>`;
+  }).join('');
+}
+
 function renderTransactions(rows) {
   const sorted = [...rows].sort(function(a,b){return new Date(b['날짜'])-new Date(a['날짜']);});
+  renderPayLegend(rows);
   const meta = $('txMeta'); if (meta) meta.textContent = '전체 ' + sorted.length + '건';
   const tbody = $('txBody');
   tbody.innerHTML = '';
@@ -1031,14 +1055,18 @@ function renderTransactions(rows) {
     const cls = inc ? 'income' : sav ? 'saving' : 'spend';
     const sign = (inc || sav) ? '+' : '';
     const payMethod = tx['지출방법'] || '';
+    const isCardTx = CARD_METHODS.includes(payMethod);
     const payColor = PAY_COLORS[payMethod] || 'var(--text-muted)';
     const payLabel = PAY_LABELS[payMethod] || payMethod;
+    // 카드는 기존 지출/수입 색 유지, 현금·체크카드는 점 색과 금액 글자색을 통일
+    const amountStyle = isCardTx ? '' : `style="color:${payColor}"`;
+    const amountCls = isCardTx ? cls : '';
     const tr = document.createElement('tr');
     tr.innerHTML = `
       <td class="tx-date"><span class="pay-dot" style="background:${payColor}" title="${payLabel}"></span>${fmtDate(tx['날짜'])}</td>
       <td><div class="tx-name">${tx['내용']||''}</div></td>
       <td><span class="tx-cat">${tx['대분류']||''}</span>${tx['소분류']?`<span class="tx-subcat">${tx['소분류']}</span>`:''}</td>
-      <td class="tx-amount ${cls}">${sign}${fmt(tx['금액'])}</td>
+      <td class="tx-amount ${amountCls}" ${amountStyle}>${sign}${fmt(tx['금액'])}</td>
     `;
     tbody.appendChild(tr);
   });

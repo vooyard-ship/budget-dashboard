@@ -21,7 +21,6 @@
     --save-light: #EAF0FC;
     --card: #D4820A;
     --card-light: #FEF3C7;
-    --cash: #8B5CF6;
     --neutral: #9896A4;
     --shadow: 0 1px 3px rgba(28,27,34,0.07), 0 0 0 1px rgba(28,27,34,0.05);
     --radius: 10px;
@@ -32,7 +31,7 @@
       --border: #33333D; --text-primary: #F0EFE9; --text-secondary: #A8A7B4;
       --text-muted: #6A6878; --spend: #F07052; --spend-light: #2E1E18;
       --income: #4DB882; --income-light: #162B20; --save: #6A94F0;
-      --save-light: #1A2240; --card: #FBBF24; --card-light: #1C1500; --cash: #A78BFA;
+      --save-light: #1A2240; --card: #FBBF24; --card-light: #1C1500;
       --shadow: 0 1px 3px rgba(0,0,0,0.3), 0 0 0 1px rgba(255,255,255,0.04);
     }
   }
@@ -41,7 +40,7 @@
     --border: #E2DFD8; --text-primary: #1C1B22; --text-secondary: #5C5B66;
     --text-muted: #9896A4; --spend: #E05A3A; --spend-light: #FAEAE5;
     --income: #3A9E71; --income-light: #E3F5EC; --save: #4B7BE5;
-    --save-light: #EAF0FC; --card: #D4820A; --card-light: #FEF3C7; --cash: #8B5CF6;
+    --save-light: #EAF0FC; --card: #D4820A; --card-light: #FEF3C7;
     --shadow: 0 1px 3px rgba(28,27,34,0.07), 0 0 0 1px rgba(28,27,34,0.05);
   }
   :root[data-theme="dark"] {
@@ -49,7 +48,7 @@
     --border: #33333D; --text-primary: #F0EFE9; --text-secondary: #A8A7B4;
     --text-muted: #6A6878; --spend: #F07052; --spend-light: #2E1E18;
     --income: #4DB882; --income-light: #162B20; --save: #6A94F0;
-    --save-light: #1A2240; --card: #FBBF24; --card-light: #1C1500; --cash: #A78BFA;
+    --save-light: #1A2240; --card: #FBBF24; --card-light: #1C1500;
     --shadow: 0 1px 3px rgba(0,0,0,0.3), 0 0 0 1px rgba(255,255,255,0.04);
   }
 
@@ -625,8 +624,8 @@ const CAT_COLORS = {
 };
 const PALETTE = ['#6A94F0','#E05A3A','#F0A050','#3A9E71','#9896A4','#C4BEDB','#9B59B6','#E67E22','#1ABC9C','#27AE60'];
 
-// 최근거래 지출방법 표시 — 점 색 + 툴팁. 카드=주황(--card), 현금(체크카드 포함)=보라(--cash, 수입 초록과 겹치지 않게)
-const PAY_COLORS = { 'M본인':'var(--card)', 'M가족':'var(--card)', '현금(브)':'var(--cash)', '현금(재)':'var(--cash)' };
+// 최근거래 지출방법 표시 — 점 색 + 툴팁. 카드=주황(--card), 현금=파랑(--save, 수입 초록과 겹치지 않게)
+const PAY_COLORS = { 'M본인':'var(--card)', 'M가족':'var(--card)', '현금(브)':'var(--save)', '현금(재)':'var(--save)' };
 const PAY_LABELS = { 'M본인':'카드(본인)', 'M가족':'카드(가족)', '현금(브)':'현금', '현금(재)':'현금' };
 
 let allData = [];

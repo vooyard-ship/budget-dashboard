@@ -1128,7 +1128,8 @@ function renderFixed(rows, month) {
   const cashFixed = fixedRows.filter(function(r){ return !isCardM(r); });
   const cardFixed = fixedRows.filter(isCardM);
 
-  function fixedSection(title, dot, items) {
+  // 최근거래와 같은 규칙 — 현금은 결제수단 색 + − 부호, 카드는 지출색·무부호
+  function fixedSection(title, dot, items, isCash) {
     if (!items.length) return 0;
     let sum = 0;
     const head = document.createElement('div');
@@ -1137,29 +1138,37 @@ function renderFixed(rows, month) {
     el.appendChild(head);
     items.forEach(function(f) {
       sum += Number(f['금액']);
+      const pay = f['지출방법'] || '';
+      const color = isCash ? (PAY_COLORS[pay] || 'var(--save)') : 'var(--spend)';
+      const sign  = isCash ? '−' : '';
+      const label = PAY_LABELS[pay] || pay;
       const row = document.createElement('div');
       row.style.cssText = 'display:flex;align-items:center;justify-content:space-between;gap:12px;padding:8px 0;border-bottom:1px solid var(--border)';
       row.innerHTML = `
-        <div>
-          <div style="font-size:13px;font-weight:500;color:var(--text-primary)">${f['내용']||''}</div>
-          <div style="font-size:11px;color:var(--text-muted);margin-top:1px">${f['소분류']||''}</div>
+        <div style="display:flex;align-items:center;gap:7px;min-width:0">
+          ${isCash ? `<span class="pay-dot" style="background:${color}" title="${label}"></span>` : ''}
+          <div style="min-width:0">
+            <div style="font-size:13px;font-weight:500;color:var(--text-primary)">${f['내용']||''}</div>
+            <div style="font-size:11px;color:var(--text-muted);margin-top:1px">${f['소분류']||''}</div>
+          </div>
         </div>
-        <div style="font-size:13px;font-weight:700;font-variant-numeric:tabular-nums;color:var(--spend);flex-shrink:0">${fmt(f['금액'])}</div>
+        <div style="font-size:13px;font-weight:700;font-variant-numeric:tabular-nums;color:${color};flex-shrink:0">${sign}${fmt(f['금액'])}</div>
       `;
       el.appendChild(row);
     });
+    const sumColor = isCash ? 'var(--save)' : 'var(--spend)';
     const sumRow = document.createElement('div');
     sumRow.style.cssText = 'display:flex;justify-content:space-between;padding:8px 0 2px;margin-top:2px;border-top:1px solid var(--border)';
     sumRow.innerHTML = `
       <div style="font-size:12px;font-weight:700;color:var(--text-muted)">${title} 합계</div>
-      <div style="font-size:15px;font-weight:800;font-variant-numeric:tabular-nums;color:var(--spend)">${sum.toLocaleString()}</div>
+      <div style="font-size:15px;font-weight:800;font-variant-numeric:tabular-nums;color:${sumColor}">${isCash ? '−' : ''}${sum.toLocaleString()}</div>
     `;
     el.appendChild(sumRow);
     return sum;
   }
 
-  const cashSum = fixedSection('현금 고정', 'var(--income)', cashFixed);
-  const cardSum = fixedSection('카드 고정', 'var(--card)', cardFixed);
+  const cashSum = fixedSection('현금 고정', 'var(--save)', cashFixed, true);
+  const cardSum = fixedSection('카드 고정', 'var(--card)', cardFixed, false);
 
   // 고정지출 총합계 (현금 + 카드)
   const grandRow = document.createElement('div');

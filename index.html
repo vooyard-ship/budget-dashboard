@@ -1059,9 +1059,13 @@ function renderTransactions(rows) {
     const inc = isIncome(tx);
     const sav = isSaving(tx);
     const cls = inc ? 'income' : sav ? 'saving' : 'spend';
-    const sign = (inc || sav) ? '+' : '';
     const payMethod = tx['지출방법'] || '';
     const isCardTx = CARD_METHODS.includes(payMethod);
+    // 카드는 수입·저축에 +, 지출은 무부호(기존 유지)
+    // 현금은 반대로 — 지출에 −를 붙여 실제 유출을 드러내고, 수입에는 +를 붙이지 않는다
+    const sign = isCardTx
+      ? ((inc || sav) ? '+' : '')
+      : ((inc || sav) ? ''  : '−');
     const payColor = PAY_COLORS[payMethod] || 'var(--text-muted)';
     const payLabel = PAY_LABELS[payMethod] || payMethod;
     // 카드는 기존 지출/수입 색 유지, 현금은 점 색과 금액 글자색을 통일
